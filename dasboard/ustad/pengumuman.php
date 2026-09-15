@@ -5,16 +5,35 @@ require_once '../../config/koneksi.php';
 checkRole('ustad');
 $nama_user = getUserNama();
 
-// Count Metrics
-$tot_santri = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as c FROM santri"))['c'];
-$tot_setoran = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as c FROM setoran"))['c'];
-$tot_khatam = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as c FROM santri WHERE total_hafalan >= 30"))['c'];
+$msg = '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['post_pengumuman'])) {
+    $judul    = trim($_POST['judul']);
+    $isi      = trim($_POST['isi']);
+    $tanggal  = date('Y-m-d H:i:s');
+
+    if (!empty($judul) && !empty($isi)) {
+        $stmt = mysqli_prepare($koneksi, "INSERT INTO pengumuman (judul, isi, tanggal) VALUES (?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, "sss", $judul, $isi, $tanggal);
+        if (mysqli_stmt_execute($stmt)) {
+            $msg = 'posted';
+        }
+    }
+}
+
+if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
+    $p_id = intval($_GET['id']);
+    mysqli_query($koneksi, "DELETE FROM pengumuman WHERE id = $p_id");
+    header("Location: pengumuman.php?msg=deleted");
+    exit();
+}
+
+$pengumuman_list = mysqli_query($koneksi, "SELECT * FROM pengumuman ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Statistik Hafalan - E-Hafalan</title>
+    <title>Pengumuman - E-Hafalan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -44,9 +63,9 @@ $tot_khatam = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as c FR
             <a href="setoran.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-book-bookmark text-slate-400 w-5"></i><span>Setoran Hafalan</span></a>
             <a href="penilaian.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-star text-slate-400 w-5"></i><span>Penilaian & Nilai</span></a>
             <div class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase text-slate-500">Laporan & Info</div>
-            <a href="statistik.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-emerald-600 text-white font-medium shadow-lg shadow-emerald-600/30"><i class="fa-solid fa-chart-line text-lg w-5"></i><span>Statistik Hafalan</span></a>
+            <a href="statistik.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-chart-line text-slate-400 w-5"></i><span>Statistik Hafalan</span></a>
             <a href="laporan.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-file-invoice text-slate-400 w-5"></i><span>Laporan Hafalan</span></a>
-            <a href="pengumuman.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-bullhorn text-slate-400 w-5"></i><span>Pengumuman</span></a>
+            <a href="pengumuman.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-emerald-600 text-white font-medium shadow-lg shadow-emerald-600/30"><i class="fa-solid fa-bullhorn text-lg w-5"></i><span>Pengumuman</span></a>
             <a href="setting.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-all"><i class="fa-solid fa-sliders text-slate-400 w-5"></i><span>Pengaturan Sistem</span></a>
         </nav>
         <div class="p-4 border-t border-slate-800 flex items-center justify-between">
@@ -57,40 +76,52 @@ $tot_khatam = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as c FR
 
     <main class="flex-1 flex flex-col min-w-0">
         <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-20">
-            <h2 class="text-xl font-bold text-slate-800">Statistik Hafalan</h2>
-            <p class="text-xs text-slate-500">Ringkasan capaian hafalan dan keaktifan santri</p>
+            <h2 class="text-xl font-bold text-slate-800">Kelola Pengumuman</h2>
+            <p class="text-xs text-slate-500">Buat berita dan pemberitahuan penting untuk pengguna</p>
         </header>
 
         <div class="p-6 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-500 uppercase font-semibold">Total Santri Aktif</p>
-                        <h4 class="text-2xl font-bold text-slate-800 mt-1"><?php echo $tot_santri; ?></h4>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-users"></i></div>
+            <?php if ($msg == 'posted' || (isset($_GET['msg']) && $_GET['msg'] == 'deleted')): ?>
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                    <i class="fa-solid fa-circle-check mr-2"></i> Operasi pengumuman berhasil dilaksanakan!
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-500 uppercase font-semibold">Total Setoran Tercatat</p>
-                        <h4 class="text-2xl font-bold text-slate-800 mt-1"><?php echo $tot_setoran; ?></h4>
-                    </div>
-                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-book-open"></i></div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-500 uppercase font-semibold">Santri Khatam (30 Juz)</p>
-                        <h4 class="text-2xl font-bold text-slate-800 mt-1"><?php echo $tot_khatam; ?></h4>
-                    </div>
-                    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-trophy"></i></div>
-                </div>
-            </div>
+            <?php endif; ?>
 
             <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-sm mb-2">Informasi Visualisasi Data</h3>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                    Statistik hafalan ini menyajikan gambaran kuantitatif dari seluruh transaksi setoran hafalan yang terekam di dalam database lembaga.
-                </p>
+                <h3 class="font-bold text-slate-800 text-base mb-4">Buat Pengumuman Baru</h3>
+                <form action="pengumuman.php" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Pengumuman *</label>
+                        <input type="text" name="judul" required placeholder="Judul informasi..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Pengumuman *</label>
+                        <textarea name="isi" rows="4" required placeholder="Tuliskan detail pengumuman di sini..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                    <div class="text-right">
+                        <button type="submit" name="post_pengumuman" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-xl shadow-md transition-all">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Terbitkan Pengumuman
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="font-bold text-slate-800 text-base">Riwayat Pengumuman</h3>
+                <?php while ($p = mysqli_fetch_assoc($pengumuman_list)): ?>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-bold text-slate-800 text-base"><?php echo htmlspecialchars($p['judul']); ?></h4>
+                            <span class="text-[11px] text-slate-400"><?php echo date('d M Y, H:i', strtotime($p['tanggal'])); ?></span>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed mb-4"><?php echo nl2br(htmlspecialchars($p['isi'])); ?></p>
+                        <div class="text-right">
+                            <a href="pengumuman.php?action=delete&id=<?php echo $p['id']; ?>" onclick="return confirm('Hapus pengumuman ini?');" class="text-xs text-red-600 hover:underline">
+                                <i class="fa-solid fa-trash mr-1"></i> Hapus
+                            </a>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
             </div>
         </div>
     </main>

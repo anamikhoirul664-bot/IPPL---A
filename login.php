@@ -2,9 +2,9 @@
 session_start();
 require_once 'config/koneksi.php';
 
-// Jika pengguna sudah login, langsung arahkan ke dashboard masing-masing
+// Jika pengguna sudah login, langsung lempar ke dashboard rolenya masing-masing
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-    header("Location: dashboard/" . $_SESSION['role'] . "/index.php");
+    header("Location: dasboard/" . $_SESSION['role'] . "/dasboard.php");
     exit();
 }
 
@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = trim($_POST['password']);
 
     if (!empty($username) && !empty($password)) {
-        // Query menggunakan Prepared Statement untuk mencegah SQL Injection
         $stmt = mysqli_prepare($koneksi, "SELECT id, nama, username, password, role FROM users WHERE username = ? OR email = ?");
         mysqli_stmt_bind_param($stmt, "ss", $username, $username);
         mysqli_stmt_execute($stmt);
@@ -29,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role']     = strtolower($user['role']); // santri, ustad, pengasuh, wali
 
-                // Redirect sesuai Role
-                header("Location: dashboard/" . $_SESSION['role'] . "/index.php");
+                // DIRECT LANGSUNG KE DASHBOARD MASING-MASING ROLE
+                header("Location: dasboard/" . $_SESSION['role'] . "/dasboard.php");
                 exit();
             } else {
                 $error = "Password yang Anda masukkan salah.";
@@ -43,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Silakan isi semua kolom login.";
     }
 }
+?>
 ?>
 <!DOCTYPE html>
 <html lang="id">
