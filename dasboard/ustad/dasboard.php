@@ -25,6 +25,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,9 +36,12 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
     </style>
 </head>
+
 <body class="bg-slate-100 min-h-screen text-slate-800 flex">
 
     <!-- SIDEBAR -->
@@ -155,7 +159,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
 
             <!-- STATISTIC CARDS -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                
+
                 <!-- Card Santri -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
                     <div>
@@ -208,7 +212,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
                     <h3 class="font-bold text-slate-800">Setoran Hafalan Terbaru</h3>
                     <a href="setoran.php" class="text-xs font-semibold text-emerald-600 hover:underline">Lihat Semua</a>
                 </div>
-                
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
@@ -234,9 +238,8 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
                                         <td class="py-3 px-5">Juz <?php echo $row['juz']; ?></td>
                                         <td class="py-3 px-5">
                                             <span class="px-2.5 py-1 rounded-full text-xs font-semibold 
-                                                <?php 
-                                                    echo $row['kelancaran'] == 'Sangat Lancar' ? 'bg-emerald-100 text-emerald-700' : 
-                                                        ($row['kelancaran'] == 'Lancar' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'); 
+                                                <?php
+                                                echo $row['kelancaran'] == 'Sangat Lancar' ? 'bg-emerald-100 text-emerald-700' : ($row['kelancaran'] == 'Lancar' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700');
                                                 ?>">
                                                 <?php echo htmlspecialchars($row['kelancaran']); ?>
                                             </span>
@@ -261,4 +264,5 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
     </main>
 
 </body>
+
 </html>
