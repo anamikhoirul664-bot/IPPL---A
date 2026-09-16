@@ -36,7 +36,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_stmt_bind_param($insert_stmt, "sssss", $nama, $username, $email, $hashed_password, $role);
 
             if (mysqli_stmt_execute($insert_stmt)) {
-                $success = "Pendaftaran berhasil! Silakan login dengan akun Anda.";
+
+                // Ambil ID user yang baru saja dibuat
+                $user_id = mysqli_insert_id($koneksi);
+
+                // Jika yang mendaftar adalah santri
+                if ($role == 'santri') {
+
+                    // Buat data santri
+                    $nis = 'NIS' . $user_id;
+
+                    $santri_stmt = mysqli_prepare($koneksi, "INSERT INTO santri (user_id, nis) VALUES (?, ?)");
+                    mysqli_stmt_bind_param($santri_stmt, "is", $user_id, $nis);
+
+                    if (!mysqli_stmt_execute($santri_stmt)) {
+                        $error = "Akun berhasil dibuat, tetapi data santri gagal dibuat.";
+                    }
+
+                    mysqli_stmt_close($santri_stmt);
+                }
+
+                if (empty($error)) {
+                    $success = "Pendaftaran berhasil! Silakan login dengan akun Anda.";
+                }
             } else {
                 $error = "Gagal mendaftar. Silakan coba beberapa saat lagi.";
             }
@@ -48,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,7 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(16px);
@@ -66,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     </style>
 </head>
+
 <body class="bg-slate-50 min-h-screen flex items-center justify-center relative overflow-hidden p-4">
 
     <!-- Background Orbs -->
@@ -73,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="absolute -bottom-20 -left-20 w-96 h-96 bg-teal-300/30 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="w-full max-w-lg relative z-10 py-8">
-        
+
         <!-- Header Logo -->
         <div class="text-center mb-6">
             <a href="index.php" class="inline-flex items-center space-x-3 group">
@@ -88,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <!-- Card Form Register -->
         <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl shadow-emerald-900/10">
-            
+
             <?php if (!empty($error)): ?>
                 <div class="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center space-x-3">
                     <i class="fa-solid fa-circle-exclamation text-lg"></i>
@@ -107,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
 
             <form action="register.php" method="POST" class="space-y-4">
-                
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
                     <input type="text" name="nama" required placeholder="Ahmad Hanif" class="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
@@ -152,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
 
             <div class="mt-6 text-center text-xs text-slate-500">
-                Sudah punya akun? 
+                Sudah punya akun?
                 <a href="login.php" class="text-emerald-600 font-bold hover:underline">Masuk Ke Aplikasi</a>
             </div>
         </div>
@@ -163,4 +190,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
 </body>
+
 </html>
