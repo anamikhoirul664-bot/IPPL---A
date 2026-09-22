@@ -1,8 +1,10 @@
+
 <?php
 require_once '../../config/auth.php';
 require_once '../../config/koneksi.php';
 
 // Memastikan hanya role santri yang dapat mengakses
+
 checkRole('santri');
 
 $user_id = getUserId();
@@ -49,6 +51,158 @@ if (!$data_santri) {
 }
 
 $santri_id = $data_santri['id'];
+
+/*
+|--------------------------------------------------------------------------
+| PROSES INPUT SETORAN OLEH SANTRI
+|--------------------------------------------------------------------------
+*/
+
+$pesan_sukses = '';
+$pesan_error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
+    $jenis = $_POST['jenis'] ?? '';
+    $surah_id = (int) ($_POST['surah_id'] ?? 0);
+    $ayat_mulai = (int) ($_POST['ayat_mulai'] ?? 0);
+    $ayat_selesai = (int) ($_POST['ayat_selesai'] ?? 0);
+    $juz = (int) ($_POST['juz'] ?? 0);
+    $halaman = (int) ($_POST['halaman'] ?? 0);
+    $catatan = trim($_POST['catatan'] ?? '');
+
+    $jenis_valid = ['ziyadah', 'murajaah'];
+
+    if (!in_array($jenis, $jenis_valid, true)) {
+        $pesan_error = 'Jenis setoran tidak valid.';
+
+    } elseif ($surah_id <= 0 || $ayat_mulai <= 0 || $ayat_selesai <= 0) {
+        $pesan_error = 'Surah dan ayat wajib diisi dengan benar.';
+
+    } elseif ($ayat_selesai < $ayat_mulai) {
+        $pesan_error = 'Ayat selesai tidak boleh lebih kecil dari ayat mulai.';
+
+    } elseif ($juz < 1 || $juz > 30) {
+        $pesan_error = 'Juz harus berada antara 1 sampai 30.';
+
+    } elseif ($halaman < 1) {
+        $pesan_error = 'Halaman harus diisi minimal 1.';
+
+    } else {
+
+        // Mengecek jumlah ayat sesuai surah
+        $query_cek_surah = "
+            SELECT nama_surah, jumlah_ayat
+            FROM surah
+            WHERE id = ?
+        ";
+
+        $stmt_cek_surah = mysqli_prepare($koneksi, $query_cek_surah);
+
+        mysqli_stmt_bind_param(
+            $stmt_cek_surah,
+            "i",
+            $surah_id
+        );
+
+        mysqli_stmt_execute($stmt_cek_surah);
+
+        $result_cek_surah = mysqli_stmt_get_result($stmt_cek_surah);
+        $data_cek_surah = mysqli_fetch_assoc($result_cek_surah);
+
+        if (!$data_cek_surah) {
+
+            $pesan_error = 'Surah yang dipilih tidak ditemukan.';
+
+        } elseif (
+            $ayat_mulai > (int) $data_cek_surah['jumlah_ayat'] ||
+            $ayat_selesai > (int) $data_cek_surah['jumlah_ayat']
+        ) {
+
+            $pesan_error = 'Ayat tidak boleh melebihi jumlah ayat '
+                . $data_cek_surah['nama_surah']
+                . ', yaitu '
+                . $data_cek_surah['jumlah_ayat']
+                . ' ayat.';
+
+        } else {
+
+            $query_insert = "
+                INSERT INTO setoran
+                (
+                    santri_id,
+                    jenis,
+                    surah_id,
+                    ayat_mulai,
+                    ayat_selesai,
+                    juz,
+                    halaman,
+                    catatan
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ";
+
+            $stmt_insert = mysqli_prepare($koneksi, $query_insert);
+
+            if ($stmt_insert) {
+
+                mysqli_stmt_bind_param(
+                    $stmt_insert,
+                    "isiiiiis",
+                    $santri_id,
+                    $jenis,
+                    $surah_id,
+                    $ayat_mulai,
+                    $ayat_selesai,
+                    $juz,
+                    $halaman,
+                    $catatan
+                );
+
+                if (mysqli_stmt_execute($stmt_insert)) {
+
+                    $pesan_sukses = 'Setoran berhasil disimpan dan menunggu penilaian ustadz.';
+
+                } else {
+
+                    $pesan_error = 'Setoran gagal disimpan. Silakan coba lagi.';
+
+                }
+
+                mysqli_stmt_close($stmt_insert);
+
+            } else {
+
+                $pesan_error = 'Terjadi kesalahan pada proses penyimpanan.';
+
+            }
+        }
+
+        mysqli_stmt_close($stmt_cek_surah);
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| DATA SURAH
+|--------------------------------------------------------------------------
+*/
+
+$query_surah = "
+    SELECT 
+        id,
+        nama_surah,
+        nama_arab,
+        jumlah_ayat
+    FROM surah
+    ORDER BY id ASC
+";
+
+$result_surah = mysqli_query($koneksi, $query_surah);
+
+if (!$result_surah) {
+    die("Data surah gagal dimuat: " . mysqli_error($koneksi));
+}
+
 
 
 /*
@@ -180,6 +334,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
         body {
             font-family: 'Poppins', sans-serif;
         }
@@ -216,6 +371,57 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             }
 
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSIVE MOBILE
+        |--------------------------------------------------------------------------
+        */
+
+        @media (max-width: 767px) {
+
+            /* Sidebar pada layar HP */
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.active {
+                transform: translateX(0);
+            }
+
+            /* Overlay sidebar */
+            #sidebarOverlay.active {
+                display: block;
+            }
+
+            /* Ukuran judul header pada HP */
+            header h2 {
+                font-size: 1rem;
+            }
+
+            /* Tombol target pada HP */
+            .target-button-text {
+                display: none;
+            }
+
+            /* Tabel dapat digeser ke samping */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .table-responsive table {
+                min-width: 1100px;
+            }
+
+        }
+
     </style>
 
 </head>
@@ -225,10 +431,36 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
 
     <!-- =========================================================
+         OVERLAY SIDEBAR MOBILE
+    ========================================================== -->
+
+    <div id="sidebarOverlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"
+        onclick="tutupSidebar()">
+    </div>
+
+
+    <!-- =========================================================
          SIDEBAR
     ========================================================== -->
 
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+    <aside id="sidebar"
+        class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+
+        <!-- Tombol Tutup Sidebar Mobile -->
+        <div class="flex justify-end p-3 md:hidden">
+
+            <button type="button"
+                onclick="tutupSidebar()"
+                class="text-slate-400 hover:text-white text-xl"
+                aria-label="Tutup menu">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
 
         <!-- Logo -->
         <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
@@ -388,7 +620,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
     </aside>
 
 
-
     <!-- =========================================================
          MAIN CONTENT
     ========================================================== -->
@@ -403,17 +634,31 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         <header class="bg-white border-b border-slate-200 px-6 py-4
                 flex items-center justify-between sticky top-0 z-20">
 
-            <div>
+            <div class="flex items-center gap-3">
 
-                <h2 class="text-xl font-bold text-slate-800">
-                    Hafalan Saya
-                </h2>
+                <!-- Tombol Menu Mobile -->
+                <button type="button"
+                    onclick="bukaSidebar()"
+                    class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
+                    aria-label="Buka menu">
 
-                <p class="text-xs text-slate-500">
+                    <i class="fa-solid fa-bars"></i>
 
-                    Riwayat hafalan dan setoran Al-Qur'an Anda
+                </button>
 
-                </p>
+                <div>
+
+                    <h2 class="text-xl font-bold text-slate-800">
+                        Hafalan Saya
+                    </h2>
+
+                    <p class="text-xs text-slate-500">
+
+                        Riwayat hafalan dan setoran Al-Qur'an Anda
+
+                    </p>
+
+                </div>
 
             </div>
 
@@ -429,7 +674,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                     <i class="fa-solid fa-bullseye"></i>
 
-                    <span>Lihat Target</span>
+                    <span class="target-button-text">Lihat Target</span>
 
                 </a>
 
@@ -438,10 +683,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         </header>
 
 
-
         <!-- =====================================================
              CONTENT
-        ====================================================== -->
+        ======================================================= -->
 
         <div class="p-6 space-y-6 fade-in">
 
@@ -479,9 +723,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                     </div>
 
 
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center justify-between gap-3 w-full md:w-auto">
 
-                        <div class="text-right">
+                        <div class="text-left min-w-0">
 
                             <p class="text-xs text-emerald-100">
                                 Halaqah
@@ -515,6 +759,122 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             </div>
 
 
+
+            <!-- =================================================
+                 FORM INPUT SETORAN
+            ================================================== -->
+
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-800">Input Setoran Hafalan</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Isi data hafalan yang ingin disetorkan kepada ustadz.
+                    </p>
+                </div>
+
+                <div class="p-5">
+                    <?php if (!empty($pesan_sukses)): ?>
+                        <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200
+                                    px-4 py-3 text-sm text-emerald-700">
+                            <?php echo htmlspecialchars($pesan_sukses); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pesan_error)): ?>
+                        <div class="mb-4 rounded-xl bg-red-50 border border-red-200
+                                    px-4 py-3 text-sm text-red-700">
+                            <?php echo htmlspecialchars($pesan_error); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label for="jenis" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Jenis Setoran
+                            </label>
+                            <select id="jenis" name="jenis" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="">Pilih jenis setoran</option>
+                                <option value="ziyadah">Ziyadah (Hafalan Baru)</option>
+                                <option value="murajaah">Murajaah (Mengulang Hafalan)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="surah_id" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Surah
+                            </label>
+                            <select id="surah_id" name="surah_id" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="">Pilih surah</option>
+                                <?php while ($surah = mysqli_fetch_assoc($result_surah)): ?>
+                                    <option value="<?php echo (int) $surah['id']; ?>">
+                                        <?php echo htmlspecialchars($surah['nama_surah']); ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="ayat_mulai" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Ayat Mulai
+                            </label>
+                            <input type="number" id="ayat_mulai" name="ayat_mulai" min="1" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div>
+                            <label for="ayat_selesai" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Ayat Selesai
+                            </label>
+                            <input type="number" id="ayat_selesai" name="ayat_selesai" min="1" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div>
+                            <label for="juz" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Juz
+                            </label>
+                            <input type="number" id="juz" name="juz" min="1" max="30" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div>
+                            <label for="halaman" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Halaman
+                            </label>
+                            <input type="number" id="halaman" name="halaman" min="1" required
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="catatan" class="block text-xs font-semibold text-slate-600 mb-2">
+                                Catatan (Opsional)
+                            </label>
+                            <textarea id="catatan" name="catatan" rows="3"
+                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm
+                                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="Tambahkan catatan setoran jika diperlukan"></textarea>
+                        </div>
+
+                        <div class="md:col-span-2 flex justify-end">
+                            <button type="submit" name="simpan_setoran"
+                                class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700
+                                       text-white text-sm font-semibold shadow-md shadow-emerald-600/20
+                                       transition-all">
+                                <i class="fa-solid fa-save mr-2"></i>
+                                Simpan Setoran
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
             <!-- =================================================
                  STATISTIC CARDS
@@ -554,7 +914,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 </div>
 
 
-
                 <!-- Ziyadah -->
                 <div class="bg-white p-5 rounded-2xl
                         border border-slate-200/80 shadow-sm
@@ -586,7 +945,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 </div>
 
 
-
                 <!-- Murajaah -->
                 <div class="bg-white p-5 rounded-2xl
                         border border-slate-200/80 shadow-sm
@@ -616,7 +974,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                     </div>
 
                 </div>
-
 
 
                 <!-- Rata-rata -->
@@ -652,7 +1009,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             </div>
 
 
-
             <!-- =================================================
                  RIWAYAT SETORAN
             ================================================== -->
@@ -681,9 +1037,11 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                     <div class="text-xs text-slate-400">
 
                         Total:
+
                         <strong class="text-emerald-600">
                             <?php echo $total_setoran; ?>
                         </strong>
+
                         setoran
 
                     </div>
@@ -691,9 +1049,8 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 </div>
 
 
-
                 <!-- Table -->
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto table-responsive">
 
                     <table class="w-full text-left border-collapse text-sm">
 
@@ -1037,7 +1394,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             </div>
 
 
-
             <!-- =================================================
                  INFORMASI
             ================================================== -->
@@ -1085,12 +1441,12 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
     </main>
 
 
-
     <!-- =========================================================
          JAVASCRIPT
     ========================================================== -->
 
     <script>
+
         /*
         |--------------------------------------------------------------------------
         | ANIMASI
@@ -1137,6 +1493,62 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             });
 
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SIDEBAR RESPONSIF MOBILE
+        |--------------------------------------------------------------------------
+        */
+
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function bukaSidebar() {
+
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
+
+        }
+
+        function tutupSidebar() {
+
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+
+        }
+
+
+        // Menutup sidebar setelah memilih menu pada HP
+        const sidebarLinks = document.querySelectorAll('#sidebar a');
+
+        sidebarLinks.forEach(function(link) {
+
+            link.addEventListener('click', function() {
+
+                if (window.innerWidth <= 767) {
+
+                    tutupSidebar();
+
+                }
+
+            });
+
+        });
+
+
+        // Mengembalikan sidebar ketika layar diperbesar
+        window.addEventListener('resize', function() {
+
+            if (window.innerWidth >= 768) {
+
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+
+            }
+
+        });
+
     </script>
 
 

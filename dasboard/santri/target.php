@@ -50,6 +50,69 @@ if (!$data_santri) {
 
 $santri_id = $data_santri['id'];
 
+// Pesan hasil proses input target
+$pesan_sukses = '';
+$pesan_error = '';
+
+// ============================================================
+// PROSES TAMBAH TARGET HAFALAN
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_target'])) {
+    $target_juz_baru = filter_input(
+        INPUT_POST,
+        'target_juz',
+        FILTER_VALIDATE_INT
+    );
+
+    $tgl_mulai_baru = trim($_POST['tgl_mulai'] ?? '');
+    $tgl_tenggat_baru = trim($_POST['tgl_tenggat'] ?? '');
+
+    if (
+        $target_juz_baru === false ||
+        $target_juz_baru === null ||
+        $target_juz_baru < 1 ||
+        $target_juz_baru > 30
+    ) {
+        $pesan_error = 'Target juz harus berupa angka antara 1 sampai 30.';
+    } elseif (empty($tgl_mulai_baru) || empty($tgl_tenggat_baru)) {
+        $pesan_error = 'Tanggal mulai dan tanggal tenggat wajib diisi.';
+    } elseif ($tgl_tenggat_baru < $tgl_mulai_baru) {
+        $pesan_error = 'Tanggal tenggat tidak boleh lebih awal dari tanggal mulai.';
+    } else {
+        $query_tambah_target = "
+            INSERT INTO target_hafalan
+                (santri_id, target_juz, tgl_mulai, tgl_tenggat, status)
+            VALUES (?, ?, ?, ?, 'Berjalan')
+        ";
+
+        $stmt_tambah_target = mysqli_prepare(
+            $koneksi,
+            $query_tambah_target
+        );
+
+        if ($stmt_tambah_target) {
+            mysqli_stmt_bind_param(
+                $stmt_tambah_target,
+                "iiss",
+                $santri_id,
+                $target_juz_baru,
+                $tgl_mulai_baru,
+                $tgl_tenggat_baru
+            );
+
+            if (mysqli_stmt_execute($stmt_tambah_target)) {
+                $pesan_sukses = 'Target hafalan berhasil ditambahkan.';
+            } else {
+                $pesan_error = 'Target hafalan gagal ditambahkan.';
+            }
+
+            mysqli_stmt_close($stmt_tambah_target);
+        } else {
+            $pesan_error = 'Query tambah target tidak dapat diproses.';
+        }
+    }
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -134,9 +197,11 @@ if ($target_aktif) {
             $persentase_target = 100;
         }
     }
+
 } else {
 
     $target_juz_aktif = 0;
+
 }
 
 
@@ -210,14 +275,17 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
     <!-- Font Awesome -->
-    <link rel="stylesheet"
+    <link
+        rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
         body {
             font-family: 'Poppins', sans-serif;
         }
@@ -236,7 +304,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             border-radius: 10px;
         }
 
-        /* Animasi sederhana */
+        /* Animasi */
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
@@ -254,6 +322,39 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             }
 
         }
+
+        /* Responsive Sidebar */
+        @media (max-width: 767px) {
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.active {
+                transform: translateX(0);
+            }
+
+            #sidebarOverlay.active {
+                display: block;
+            }
+
+            header h2 {
+                font-size: 1rem;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+        }
+
     </style>
 
 </head>
@@ -262,18 +363,48 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 <body class="bg-slate-100 min-h-screen text-slate-800 flex">
 
 
+    <!-- OVERLAY SIDEBAR MOBILE -->
+
+    <div
+        id="sidebarOverlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"
+        onclick="tutupSidebar()">
+    </div>
+
+
     <!-- =========================================================
          SIDEBAR
     ========================================================== -->
 
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+    <aside
+        id="sidebar"
+        class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+
+        <!-- Tombol Tutup Mobile -->
+
+        <div class="flex justify-end p-3 md:hidden">
+
+            <button
+                type="button"
+                onclick="tutupSidebar()"
+                class="text-slate-400 hover:text-white text-xl"
+                aria-label="Tutup menu">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
 
         <!-- Logo -->
+
         <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
 
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500
-                    flex items-center justify-center text-white text-xl font-bold
-                    shadow-lg shadow-emerald-500/20">
+            <div
+                class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500
+                flex items-center justify-center text-white text-xl font-bold
+                shadow-lg shadow-emerald-500/20">
 
                 <i class="fa-solid fa-quran"></i>
 
@@ -295,11 +426,14 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
         <!-- Navigation -->
+
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto text-sm">
 
 
             <!-- Dashboard -->
-            <a href="dasboard.php"
+
+            <a
+                href="dasboard.php"
                 class="flex items-center space-x-3 px-4 py-3 rounded-xl
                 hover:bg-slate-800 hover:text-white transition-all">
 
@@ -310,9 +444,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             </a>
 
 
-            <!-- Hafalan -->
-            <div class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
-                    tracking-wider text-slate-500">
+            <!-- Bagian Hafalan -->
+
+            <div
+                class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
+                tracking-wider text-slate-500">
 
                 Hafalan Saya
 
@@ -320,7 +456,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
             <!-- Hafalan Saya -->
-            <a href="hafalan.php"
+
+            <a
+                href="hafalan.php"
                 class="flex items-center space-x-3 px-4 py-2.5 rounded-xl
                 hover:bg-slate-800 hover:text-white transition-all">
 
@@ -331,8 +469,10 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             </a>
 
 
-            <!-- Target Hafalan AKTIF -->
-            <a href="target.php"
+            <!-- Target Hafalan Aktif -->
+
+            <a
+                href="target.php"
                 class="flex items-center space-x-3 px-4 py-3 rounded-xl
                 bg-emerald-600 text-white font-medium
                 shadow-lg shadow-emerald-600/30">
@@ -344,16 +484,21 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             </a>
 
 
-            <!-- Profil -->
-            <div class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
-                    tracking-wider text-slate-500">
+            <!-- Bagian Akun -->
+
+            <div
+                class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
+                tracking-wider text-slate-500">
 
                 Akun Saya
 
             </div>
 
 
-            <a href="profil.php"
+            <!-- Profil -->
+
+            <a
+                href="profil.php"
                 class="flex items-center space-x-3 px-4 py-2.5 rounded-xl
                 hover:bg-slate-800 hover:text-white transition-all">
 
@@ -367,17 +512,20 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
         <!-- User -->
+
         <div class="p-4 border-t border-slate-800">
 
             <div class="flex items-center justify-between">
 
                 <div class="flex items-center space-x-3">
 
-                    <div class="w-9 h-9 rounded-full bg-emerald-600
-                            flex items-center justify-center text-white
-                            font-bold text-sm">
+                    <div
+                        class="w-9 h-9 rounded-full bg-emerald-600
+                        flex items-center justify-center text-white
+                        font-bold text-sm">
 
                         <?php
+
                         echo strtoupper(
                             substr(
                                 htmlspecialchars($nama_user),
@@ -385,6 +533,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                 1
                             )
                         );
+
                         ?>
 
                     </div>
@@ -410,7 +559,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
                 <!-- Logout -->
-                <a href="../../logout.php"
+
+                <a
+                    href="../../logout.php"
                     class="text-slate-400 hover:text-red-400 p-2
                     rounded-lg transition-colors"
                     title="Logout">
@@ -435,38 +586,58 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
         <!-- =====================================================
-             NAVBAR
+             HEADER
         ====================================================== -->
 
-        <header class="bg-white border-b border-slate-200 px-6 py-4
-                flex items-center justify-between sticky top-0 z-20">
+        <header
+            class="bg-white border-b border-slate-200 px-4 md:px-6 py-4
+            flex items-center justify-between sticky top-0 z-20">
 
-            <div>
 
-                <h2 class="text-xl font-bold text-slate-800">
-                    Target Hafalan
-                </h2>
+            <!-- Tombol Menu Mobile -->
 
-                <p class="text-xs text-slate-500">
+            <div class="flex items-center gap-3">
 
-                    Pantau target hafalan Al-Qur'an Anda
+                <button
+                    type="button"
+                    onclick="bukaSidebar()"
+                    class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
+                    aria-label="Buka menu">
 
-                </p>
+                    <i class="fa-solid fa-bars"></i>
+
+                </button>
+
+
+                <div>
+
+                    <h2 class="text-xl font-bold text-slate-800">
+                        Target Hafalan
+                    </h2>
+
+                    <p class="text-xs text-slate-500">
+                        Pantau target hafalan Al-Qur'an Anda
+                    </p>
+
+                </div>
 
             </div>
 
 
             <div class="flex items-center space-x-3">
 
-                <a href="hafalan.php"
-                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700
+                <a
+                    href="hafalan.php"
+                    class="px-3 md:px-4 py-2 bg-emerald-600 hover:bg-emerald-700
                     text-white rounded-xl text-xs font-medium
                     shadow-md shadow-emerald-600/20 transition-all
                     flex items-center space-x-2">
 
                     <i class="fa-solid fa-book-quran"></i>
 
-                    <span>Lihat Hafalan</span>
+                    <span class="hidden sm:inline">
+                        Lihat Hafalan
+                    </span>
 
                 </a>
 
@@ -480,18 +651,18 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
              CONTENT
         ====================================================== -->
 
-        <div class="p-6 space-y-6 fade-in">
+        <div class="p-4 md:p-6 space-y-6 fade-in">
 
 
-            <!-- =================================================
-                 WELCOME CARD
-            ================================================== -->
+            <!-- WELCOME CARD -->
 
-            <div class="bg-gradient-to-r from-emerald-600 to-teal-500
-                    rounded-2xl p-6 text-white shadow-lg">
+            <div
+                class="bg-gradient-to-r from-emerald-600 to-teal-500
+                rounded-2xl p-5 md:p-6 text-white shadow-lg">
 
-                <div class="flex flex-col md:flex-row
-                        md:items-center md:justify-between gap-5">
+                <div
+                    class="flex flex-col md:flex-row
+                    md:items-center md:justify-between gap-5">
 
 
                     <div>
@@ -502,7 +673,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                         <h1 class="text-2xl font-bold mt-1">
 
-                            <?php echo htmlspecialchars($nama_user); ?>
+                            <?php
+                            echo htmlspecialchars($nama_user);
+                            ?>
 
                         </h1>
 
@@ -516,9 +689,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                     </div>
 
 
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center justify-between gap-3 w-full md:w-auto">
 
-                        <div class="text-right">
+                       <div class="text-left min-w-0"> 
 
                             <p class="text-xs text-emerald-100">
                                 Halaqah
@@ -527,10 +700,12 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                             <p class="font-semibold">
 
                                 <?php
+
                                 echo htmlspecialchars(
                                     $data_santri['nama_halaqah']
-                                        ?? 'Belum ditentukan'
+                                    ?? 'Belum ditentukan'
                                 );
+
                                 ?>
 
                             </p>
@@ -538,8 +713,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                         </div>
 
 
-                        <div class="w-14 h-14 rounded-2xl bg-white/20
-                                flex items-center justify-center">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-white/20
+                            flex items-center justify-center">
 
                             <i class="fa-solid fa-bullseye text-2xl"></i>
 
@@ -553,17 +729,136 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
 
-            <!-- =================================================
-                 STATISTIC CARDS
-            ================================================== -->
+            <!-- PESAN PROSES INPUT -->
+            <?php if (!empty($pesan_sukses)): ?>
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50
+                            px-4 py-3 text-sm text-emerald-700">
+                    <i class="fa-solid fa-circle-check mr-2"></i>
+                    <?php echo htmlspecialchars($pesan_sukses); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($pesan_error)): ?>
+                <div class="rounded-xl border border-red-200 bg-red-50
+                            px-4 py-3 text-sm text-red-700">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>
+                    <?php echo htmlspecialchars($pesan_error); ?>
+                </div>
+            <?php endif; ?>
+
+
+            <!-- FORM TAMBAH TARGET -->
+
+            <div class="bg-white rounded-2xl border border-slate-200/80
+                        shadow-sm overflow-hidden">
+
+                <div class="p-5 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50
+                                    text-emerald-600 flex items-center justify-center">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+
+                        <div>
+                            <h3 class="font-bold text-slate-800">
+                                Tambah Target Hafalan
+                            </h3>
+
+                            <p class="text-xs text-slate-400 mt-1">
+                                Masukkan target hafalan yang ingin dicapai.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" class="p-5 space-y-4">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <div>
+                            <label for="target_juz"
+                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                Target Juz
+                            </label>
+
+                            <input
+                                type="number"
+                                id="target_juz"
+                                name="target_juz"
+                                min="1"
+                                max="30"
+                                required
+                                placeholder="Contoh: 5"
+                                class="w-full rounded-xl border border-slate-200
+                                       px-4 py-3 text-sm outline-none
+                                       focus:border-emerald-500 focus:ring-2
+                                       focus:ring-emerald-100">
+                        </div>
+
+                        <div>
+                            <label for="tgl_mulai"
+                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                Tanggal Mulai
+                            </label>
+
+                            <input
+                                type="date"
+                                id="tgl_mulai"
+                                name="tgl_mulai"
+                                required
+                                class="w-full rounded-xl border border-slate-200
+                                       px-4 py-3 text-sm outline-none
+                                       focus:border-emerald-500 focus:ring-2
+                                       focus:ring-emerald-100">
+                        </div>
+
+                        <div>
+                            <label for="tgl_tenggat"
+                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                Tanggal Tenggat
+                            </label>
+
+                            <input
+                                type="date"
+                                id="tgl_tenggat"
+                                name="tgl_tenggat"
+                                required
+                                class="w-full rounded-xl border border-slate-200
+                                       px-4 py-3 text-sm outline-none
+                                       focus:border-emerald-500 focus:ring-2
+                                       focus:ring-emerald-100">
+                        </div>
+
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            name="tambah_target"
+                            class="w-full sm:w-auto px-5 py-3 rounded-xl
+                                   bg-emerald-600 hover:bg-emerald-700
+                                   text-white text-sm font-semibold
+                                   transition-colors">
+                            <i class="fa-solid fa-save mr-2"></i>
+                            Simpan Target
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+
+            <!-- STATISTIC CARDS -->
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
 
                 <!-- Target Berjalan -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+
+                <div
+                    class="bg-white p-5 rounded-2xl
+                    border border-slate-200/80 shadow-sm
+                    flex items-center justify-between">
 
                     <div>
 
@@ -580,9 +875,10 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                     </div>
 
 
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50
-                            text-emerald-600 flex items-center
-                            justify-center text-xl">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-emerald-50
+                        text-emerald-600 flex items-center
+                        justify-center text-xl">
 
                         <i class="fa-solid fa-bullseye"></i>
 
@@ -593,9 +889,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
                 <!-- Target Tercapai -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+
+                <div
+                    class="bg-white p-5 rounded-2xl
+                    border border-slate-200/80 shadow-sm
+                    flex items-center justify-between">
 
                     <div>
 
@@ -612,9 +910,10 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                     </div>
 
 
-                    <div class="w-12 h-12 rounded-2xl bg-teal-50
-                            text-teal-600 flex items-center
-                            justify-center text-xl">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-teal-50
+                        text-teal-600 flex items-center
+                        justify-center text-xl">
 
                         <i class="fa-solid fa-circle-check"></i>
 
@@ -625,9 +924,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
                 <!-- Target Gagal -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+
+                <div
+                    class="bg-white p-5 rounded-2xl
+                    border border-slate-200/80 shadow-sm
+                    flex items-center justify-between">
 
                     <div>
 
@@ -644,9 +945,10 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                     </div>
 
 
-                    <div class="w-12 h-12 rounded-2xl bg-amber-50
-                            text-amber-600 flex items-center
-                            justify-center text-xl">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-amber-50
+                        text-amber-600 flex items-center
+                        justify-center text-xl">
 
                         <i class="fa-solid fa-circle-xmark"></i>
 
@@ -658,16 +960,16 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
 
-            <!-- =================================================
-                 TARGET AKTIF
-            ================================================== -->
+            <!-- TARGET AKTIF -->
 
-            <div class="bg-white rounded-2xl
-                    border border-slate-200/80 shadow-sm overflow-hidden">
+            <div
+                class="bg-white rounded-2xl
+                border border-slate-200/80 shadow-sm overflow-hidden">
 
 
-                <div class="p-5 border-b border-slate-100
-                        flex items-center justify-between">
+                <div
+                    class="p-5 border-b border-slate-100
+                    flex items-center justify-between gap-3">
 
                     <div>
 
@@ -684,9 +986,10 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                     <?php if ($target_aktif): ?>
 
-                        <span class="px-3 py-1 rounded-full
-                                bg-emerald-100 text-emerald-700
-                                text-xs font-semibold">
+                        <span
+                            class="px-3 py-1 rounded-full
+                            bg-emerald-100 text-emerald-700
+                            text-xs font-semibold">
 
                             Berjalan
 
@@ -697,13 +1000,17 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                 </div>
 
 
+
                 <div class="p-5">
 
                     <?php if ($target_aktif): ?>
 
 
                         <!-- Target -->
-                        <div class="flex items-center justify-between mb-3">
+
+                        <div
+                            class="flex flex-col sm:flex-row
+                            sm:items-center sm:justify-between gap-3 mb-3">
 
                             <div>
 
@@ -720,12 +1027,14 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                     Mulai:
 
                                     <?php
+
                                     echo date(
                                         'd M Y',
                                         strtotime(
                                             $target_aktif['tgl_mulai']
                                         )
                                     );
+
                                     ?>
 
                                     &nbsp;•&nbsp;
@@ -733,12 +1042,14 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                     Tenggat:
 
                                     <?php
+
                                     echo date(
                                         'd M Y',
                                         strtotime(
                                             $target_aktif['tgl_tenggat']
                                         )
                                     );
+
                                     ?>
 
                                 </p>
@@ -746,7 +1057,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                             </div>
 
 
-                            <div class="text-right">
+                            <div class="text-left sm:text-right">
 
                                 <p class="text-2xl font-bold text-emerald-600">
 
@@ -763,7 +1074,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                         </div>
 
 
+
                         <!-- Progress Bar -->
+
                         <div class="w-full bg-slate-100 rounded-full h-3">
 
                             <div
@@ -775,7 +1088,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                         </div>
 
 
+
                         <!-- Progress Text -->
+
                         <div class="flex justify-between mt-2">
 
                             <span class="text-xs text-slate-400">
@@ -797,12 +1112,14 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
                         <!-- Tidak Ada Target -->
+
                         <div class="text-center py-8">
 
-                            <div class="w-12 h-12 mx-auto
-                                    rounded-full bg-slate-100
-                                    flex items-center justify-center
-                                    text-slate-400">
+                            <div
+                                class="w-12 h-12 mx-auto
+                                rounded-full bg-slate-100
+                                flex items-center justify-center
+                                text-slate-400">
 
                                 <i class="fa-solid fa-bullseye"></i>
 
@@ -832,12 +1149,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
 
-            <!-- =================================================
-                 SEMUA TARGET
-            ================================================== -->
+            <!-- SEMUA TARGET -->
 
-            <div class="bg-white rounded-2xl
-                    border border-slate-200/80 shadow-sm overflow-hidden">
+            <div
+                class="bg-white rounded-2xl
+                border border-slate-200/80 shadow-sm overflow-hidden">
 
 
                 <div class="p-5 border-b border-slate-100">
@@ -854,15 +1170,20 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
 
-                <div class="overflow-x-auto">
+                <!-- Table Responsive -->
 
-                    <table class="w-full text-left border-collapse text-sm">
+                <div class="table-responsive overflow-x-auto">
+
+                    <table
+                        class="w-full min-w-[700px] text-left
+                        border-collapse text-sm">
 
                         <thead>
 
-                            <tr class="bg-slate-50 text-slate-500
-                                    text-xs uppercase tracking-wider
-                                    border-b border-slate-100">
+                            <tr
+                                class="bg-slate-50 text-slate-500
+                                text-xs uppercase tracking-wider
+                                border-b border-slate-100">
 
                                 <th class="py-3 px-5 font-semibold">
                                     No
@@ -893,16 +1214,21 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                         </thead>
 
 
-                        <tbody class="divide-y divide-slate-100
-                                text-slate-700">
+
+                        <tbody
+                            class="divide-y divide-slate-100
+                            text-slate-700">
 
 
                             <?php if (mysqli_num_rows($result_target) > 0): ?>
 
                                 <?php
+
                                 $no = 1;
 
-                                while ($row = mysqli_fetch_assoc($result_target)):
+                                while (
+                                    $row = mysqli_fetch_assoc($result_target)
+                                ):
 
                                     $target_juz = $row['target_juz'];
 
@@ -917,29 +1243,37 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                         if ($progress > 100) {
                                             $progress = 100;
                                         }
+
                                     }
+
                                 ?>
 
-                                    <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <tr
+                                        class="hover:bg-slate-50/80
+                                        transition-colors">
 
 
                                         <!-- No -->
-                                        <td class="py-3 px-5 text-xs text-slate-500">
+
+                                        <td
+                                            class="py-3 px-5
+                                            text-xs text-slate-500">
 
                                             <?php echo $no++; ?>
 
                                         </td>
 
 
+
                                         <!-- Target -->
+
                                         <td class="py-3 px-5">
 
-                                            <p class="font-semibold text-slate-700">
+                                            <p
+                                                class="font-semibold
+                                                text-slate-700">
 
-                                                <?php
-                                                echo $target_juz;
-                                                ?>
-
+                                                <?php echo $target_juz; ?>
                                                 Juz
 
                                             </p>
@@ -947,46 +1281,63 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                         </td>
 
 
+
                                         <!-- Tanggal Mulai -->
-                                        <td class="py-3 px-5 text-xs text-slate-500">
+
+                                        <td
+                                            class="py-3 px-5
+                                            text-xs text-slate-500">
 
                                             <?php
+
                                             echo date(
                                                 'd M Y',
                                                 strtotime(
                                                     $row['tgl_mulai']
                                                 )
                                             );
+
                                             ?>
 
                                         </td>
 
 
+
                                         <!-- Tenggat -->
-                                        <td class="py-3 px-5 text-xs text-slate-500">
+
+                                        <td
+                                            class="py-3 px-5
+                                            text-xs text-slate-500">
 
                                             <?php
+
                                             echo date(
                                                 'd M Y',
                                                 strtotime(
                                                     $row['tgl_tenggat']
                                                 )
                                             );
+
                                             ?>
 
                                         </td>
 
 
+
                                         <!-- Progress -->
+
                                         <td class="py-3 px-5 min-w-[180px]">
 
-                                            <div class="flex items-center space-x-3">
+                                            <div
+                                                class="flex items-center space-x-3">
 
-                                                <div class="w-24 bg-slate-100
-                                                        rounded-full h-2">
+                                                <div
+                                                    class="w-24 bg-slate-100
+                                                    rounded-full h-2">
 
                                                     <div
-                                                        class="bg-emerald-500 h-2 rounded-full"
+                                                        class="bg-emerald-500
+                                                        h-2 rounded-full"
                                                         style="width: <?php echo $progress; ?>%;">
 
                                                     </div>
@@ -994,8 +1345,9 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                                 </div>
 
 
-                                                <span class="text-xs font-semibold
-                                                        text-emerald-600">
+                                                <span
+                                                    class="text-xs font-semibold
+                                                    text-emerald-600">
 
                                                     <?php echo $progress; ?>%
 
@@ -1006,15 +1358,19 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                         </td>
 
 
+
                                         <!-- Status -->
+
                                         <td class="py-3 px-5">
+
 
                                             <?php if ($row['status'] == 'Berjalan'): ?>
 
-                                                <span class="px-2.5 py-1 rounded-full
-                                                        text-xs font-semibold
-                                                        bg-emerald-100
-                                                        text-emerald-700">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full
+                                                    text-xs font-semibold
+                                                    bg-emerald-100
+                                                    text-emerald-700">
 
                                                     Berjalan
 
@@ -1023,10 +1379,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                                             <?php elseif ($row['status'] == 'Tercapai'): ?>
 
-                                                <span class="px-2.5 py-1 rounded-full
-                                                        text-xs font-semibold
-                                                        bg-teal-100
-                                                        text-teal-700">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full
+                                                    text-xs font-semibold
+                                                    bg-teal-100
+                                                    text-teal-700">
 
                                                     Tercapai
 
@@ -1035,10 +1392,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                                             <?php elseif ($row['status'] == 'Gagal'): ?>
 
-                                                <span class="px-2.5 py-1 rounded-full
-                                                        text-xs font-semibold
-                                                        bg-amber-100
-                                                        text-amber-700">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full
+                                                    text-xs font-semibold
+                                                    bg-amber-100
+                                                    text-amber-700">
 
                                                     Gagal
 
@@ -1047,40 +1405,50 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                                             <?php else: ?>
 
-                                                <span class="px-2.5 py-1 rounded-full
-                                                        text-xs font-semibold
-                                                        bg-slate-100
-                                                        text-slate-600">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full
+                                                    text-xs font-semibold
+                                                    bg-slate-100
+                                                    text-slate-600">
 
                                                     <?php
+
                                                     echo htmlspecialchars(
                                                         $row['status']
                                                     );
+
                                                     ?>
 
                                                 </span>
 
                                             <?php endif; ?>
 
+
                                         </td>
 
                                     </tr>
+
 
                                 <?php endwhile; ?>
 
 
                             <?php else: ?>
 
+
                                 <tr>
 
-                                    <td colspan="6"
+                                    <td
+                                        colspan="6"
                                         class="py-10 text-center
                                         text-slate-400 text-xs">
 
                                         <div class="mb-2">
 
-                                            <i class="fa-solid fa-bullseye
-                                                text-2xl"></i>
+                                            <i
+                                                class="fa-solid fa-bullseye
+                                                text-2xl">
+
+                                            </i>
 
                                         </div>
 
@@ -1089,6 +1457,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                     </td>
 
                                 </tr>
+
 
                             <?php endif; ?>
 
@@ -1103,21 +1472,21 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 
 
-            <!-- =================================================
-                 INFORMASI
-            ================================================== -->
+            <!-- INFORMASI -->
 
-            <div class="bg-white rounded-2xl
-                    border border-slate-200/80 shadow-sm overflow-hidden">
+            <div
+                class="bg-white rounded-2xl
+                border border-slate-200/80 shadow-sm overflow-hidden">
 
                 <div class="p-5">
 
                     <div class="flex items-start space-x-3">
 
-                        <div class="w-9 h-9 rounded-xl
-                                bg-emerald-50 text-emerald-600
-                                flex items-center justify-center
-                                flex-shrink-0">
+                        <div
+                            class="w-9 h-9 rounded-xl
+                            bg-emerald-50 text-emerald-600
+                            flex items-center justify-center
+                            flex-shrink-0">
 
                             <i class="fa-solid fa-circle-info"></i>
 
@@ -1126,8 +1495,11 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                         <div>
 
-                            <h3 class="text-sm font-semibold text-slate-700">
+                            <h3
+                                class="text-sm font-semibold text-slate-700">
+
                                 Informasi Target
+
                             </h3>
 
                             <p class="text-xs text-slate-500 mt-1">
@@ -1158,6 +1530,73 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
     ========================================================== -->
 
     <script>
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SIDEBAR RESPONSIVE
+        |--------------------------------------------------------------------------
+        */
+
+        const sidebar = document.getElementById('sidebar');
+
+        const sidebarOverlay =
+            document.getElementById('sidebarOverlay');
+
+
+        function bukaSidebar() {
+
+            sidebar.classList.add('active');
+
+            sidebarOverlay.classList.add('active');
+
+        }
+
+
+        function tutupSidebar() {
+
+            sidebar.classList.remove('active');
+
+            sidebarOverlay.classList.remove('active');
+
+        }
+
+
+        // Menutup sidebar setelah menu diklik pada perangkat mobile
+
+        document
+            .querySelectorAll('#sidebar a')
+            .forEach(function(link) {
+
+                link.addEventListener('click', function() {
+
+                    if (window.innerWidth <= 767) {
+
+                        tutupSidebar();
+
+                    }
+
+                });
+
+            });
+
+
+        // Mengatur ulang sidebar ketika ukuran layar berubah
+
+        window.addEventListener('resize', function() {
+
+            if (window.innerWidth >= 768) {
+
+                sidebar.classList.remove('active');
+
+                sidebarOverlay.classList.remove('active');
+
+            }
+
+        });
+
+
+
         /*
         |--------------------------------------------------------------------------
         | ANIMASI
@@ -1166,7 +1605,8 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
         document.addEventListener('DOMContentLoaded', function() {
 
-            const elements = document.querySelectorAll('.fade-in');
+            const elements =
+                document.querySelectorAll('.fade-in');
 
             elements.forEach(function(element) {
 
@@ -1177,15 +1617,16 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
         });
 
 
+
         /*
         |--------------------------------------------------------------------------
         | KONFIRMASI LOGOUT
         |--------------------------------------------------------------------------
         */
 
-        const logoutButton = document.querySelector(
-            'a[href="../../logout.php"]'
-        );
+        const logoutButton =
+            document.querySelector('a[href="../../logout.php"]');
+
 
         if (logoutButton) {
 
@@ -1194,6 +1635,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                 const yakin = confirm(
                     'Apakah Anda yakin ingin keluar dari sistem?'
                 );
+
 
                 if (!yakin) {
 
@@ -1204,6 +1646,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             });
 
         }
+
     </script>
 
 

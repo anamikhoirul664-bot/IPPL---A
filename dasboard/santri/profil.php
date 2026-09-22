@@ -157,13 +157,58 @@ $status_akun = $data['status'] ?? 'Aktif';
                 transform: translateY(0);
             }
         }
+
+        /* Responsive Sidebar */
+        @media (max-width: 767px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            #sidebar.active {
+                transform: translateX(0);
+            }
+
+            #sidebarOverlay.active {
+                display: block;
+            }
+
+            header h2 {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 
 <body class="bg-slate-100 min-h-screen text-slate-800 flex">
 
+    <!-- OVERLAY SIDEBAR MOBILE -->
+    <div
+        id="sidebarOverlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"
+        onclick="tutupSidebar()">
+    </div>
+
     <!-- ================= SIDEBAR ================= -->
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+    <aside
+        id="sidebar"
+        class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
+
+        <!-- Tombol Tutup Mobile -->
+        <div class="flex justify-end p-3 md:hidden">
+            <button
+                type="button"
+                onclick="tutupSidebar()"
+                class="text-slate-400 hover:text-white text-xl"
+                aria-label="Tutup menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
 
         <!-- Logo -->
         <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
@@ -322,18 +367,29 @@ $status_akun = $data['status'] ?? 'Aktif';
 
 
         <!-- ================= HEADER ================= -->
-        <header class="bg-white border-b border-slate-200 px-6 py-4
+        <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-4
             flex items-center justify-between sticky top-0 z-20">
 
-            <div>
+            <div class="flex items-center gap-3">
 
-                <h2 class="text-xl font-bold text-slate-800">
-                    Profil Saya
-                </h2>
+                <!-- Tombol Menu Mobile -->
+                <button
+                    type="button"
+                    onclick="bukaSidebar()"
+                    class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
+                    aria-label="Buka menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
 
-                <p class="text-xs text-slate-500 mt-1">
-                    Informasi akun dan data pribadi santri
-                </p>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">
+                        Profil Saya
+                    </h2>
+
+                    <p class="text-xs text-slate-500 mt-1">
+                        Informasi akun dan data pribadi santri
+                    </p>
+                </div>
 
             </div>
 
@@ -355,14 +411,14 @@ $status_akun = $data['status'] ?? 'Aktif';
 
 
         <!-- ================= CONTENT ================= -->
-        <div class="p-6 space-y-6 fade-in">
+        <div class="p-4 md:p-6 space-y-6 fade-in">
 
 
             <!-- ================= PROFILE HEADER ================= -->
             <div class="bg-gradient-to-r from-emerald-600 to-teal-500
-                rounded-2xl p-6 text-white shadow-lg">
+                rounded-2xl p-5 md:p-6 text-white shadow-lg">
 
-                <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
 
 
                     <!-- Avatar -->
@@ -403,7 +459,7 @@ $status_akun = $data['status'] ?? 'Aktif';
 
 
                     <!-- Status -->
-                    <div>
+                    <div class="sm:ml-auto">
 
                         <?php if (strtolower($status_akun) === 'aktif') : ?>
 
@@ -1064,6 +1120,38 @@ $status_akun = $data['status'] ?? 'Aktif';
 
     </main>
 
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay =
+            document.getElementById('sidebarOverlay');
+
+        function bukaSidebar() {
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
+        }
+
+        function tutupSidebar() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        }
+
+        document
+            .querySelectorAll('#sidebar a')
+            .forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 767) {
+                        tutupSidebar();
+                    }
+                });
+            });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            }
+        });
+    </script>
 
 </body>
 

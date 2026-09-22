@@ -1,21 +1,19 @@
+
 <?php
 require_once '../../config/auth.php';
 require_once '../../config/koneksi.php';
 
-// Memastikan hanya role santri yang dapat mengakses
 checkRole('santri');
 
 $user_id = getUserId();
 $nama_user = getUserNama();
 
-/*
-|--------------------------------------------------------------------------
-| DATA SANTRI
-|--------------------------------------------------------------------------
-| Mengambil data santri berdasarkan user yang sedang login
-*/
+/* =========================================================
+   DATA SANTRI
+========================================================= */
+
 $query_santri = "
-    SELECT 
+    SELECT
         s.*,
         u.nama,
         u.username,
@@ -49,33 +47,51 @@ if (!$data_santri) {
 
 $santri_id = $data_santri['id'];
 
+/* =========================================================
+   TOTAL SETORAN
+========================================================= */
 
-/*
-|--------------------------------------------------------------------------
-| STATISTIK HAFALAN
-|--------------------------------------------------------------------------
-*/
-
-// Total setoran
 $query_total_setoran = "
-    SELECT COUNT(*) AS total 
-    FROM setoran 
+    SELECT COUNT(*) AS total
+    FROM setoran
     WHERE santri_id = ?
 ";
 
 $stmt = mysqli_prepare($koneksi, $query_total_setoran);
 mysqli_stmt_bind_param($stmt, "i", $santri_id);
 mysqli_stmt_execute($stmt);
+
 $result = mysqli_stmt_get_result($stmt);
 $total_setoran = mysqli_fetch_assoc($result)['total'] ?? 0;
 
+/* =========================================================
+   TOTAL HAFALAN DAN HALAMAN
+========================================================= */
 
-// Total hafalan dari tabel santri
 $total_hafalan = $data_santri['total_hafalan'] ?? 0;
-$total_halaman = $data_santri['total_hafalan_halaman'] ?? 0;
 
+/*
+   Total halaman dihitung dari seluruh setoran santri.
+*/
+$query_total_halaman = "
+    SELECT COALESCE(SUM(halaman), 0) AS total_halaman
+    FROM setoran
+    WHERE santri_id = ?
+";
 
-// Target hafalan yang sedang berjalan
+$stmt = mysqli_prepare($koneksi, $query_total_halaman);
+mysqli_stmt_bind_param($stmt, "i", $santri_id);
+mysqli_stmt_execute($stmt);
+
+$result_halaman = mysqli_stmt_get_result($stmt);
+$data_halaman = mysqli_fetch_assoc($result_halaman);
+
+$total_halaman = $data_halaman['total_halaman'] ?? 0;
+
+/* =========================================================
+   TARGET HAFALAN
+========================================================= */
+
 $query_target = "
     SELECT *
     FROM target_hafalan
@@ -85,7 +101,6 @@ $query_target = "
     LIMIT 1
 ";
 
-
 $stmt = mysqli_prepare($koneksi, $query_target);
 mysqli_stmt_bind_param($stmt, "i", $santri_id);
 mysqli_stmt_execute($stmt);
@@ -93,13 +108,9 @@ mysqli_stmt_execute($stmt);
 $result_target = mysqli_stmt_get_result($stmt);
 $target = mysqli_fetch_assoc($result_target);
 
-
-// Jika tidak ada target berjalan
-$target_juz = $target['target_juz'] ?? $data_santri['target_juz'];
+$target_juz = $target['target_juz'] ?? ($data_santri['target_juz'] ?? 0);
 $status_target = $target['status'] ?? 'Belum ada target';
 
-
-// Hitung persentase target
 $persentase_target = 0;
 
 if ($target_juz > 0) {
@@ -110,15 +121,12 @@ if ($target_juz > 0) {
     }
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| SETORAN TERBARU
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   SETORAN TERBARU
+========================================================= */
 
 $query_setoran = "
-    SELECT 
+    SELECT
         s.*,
         sr.nama_surah,
         sr.nama_arab
@@ -135,12 +143,9 @@ mysqli_stmt_execute($stmt);
 
 $result_setoran = mysqli_stmt_get_result($stmt);
 
-
-/*
-|--------------------------------------------------------------------------
-| NILAI TERBARU
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   NILAI TERBARU
+========================================================= */
 
 $query_nilai = "
     SELECT *
@@ -156,12 +161,9 @@ mysqli_stmt_execute($stmt);
 
 $result_nilai = mysqli_stmt_get_result($stmt);
 
-
-/*
-|--------------------------------------------------------------------------
-| PENGUMUMAN TERBARU
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   PENGUMUMAN
+========================================================= */
 
 $query_pengumuman = "
     SELECT *
@@ -173,12 +175,9 @@ $query_pengumuman = "
 
 $result_pengumuman = mysqli_query($koneksi, $query_pengumuman);
 
-
-/*
-|--------------------------------------------------------------------------
-| HITUNG RATA-RATA NILAI
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   RATA-RATA NILAI
+========================================================= */
 
 $query_rata_nilai = "
     SELECT AVG(nilai) AS rata_nilai
@@ -194,27 +193,22 @@ $result_rata = mysqli_stmt_get_result($stmt);
 $data_rata = mysqli_fetch_assoc($result_rata);
 
 $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
-
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Dashboard Santri - E-Hafalan</title>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
-    <!-- Font Awesome -->
     <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -223,9 +217,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             font-family: 'Poppins', sans-serif;
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -237,13 +231,11 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             border-radius: 10px;
         }
 
-        /* Animasi sederhana */
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
 
         @keyframes fadeIn {
-
             from {
                 opacity: 0;
                 transform: translateY(5px);
@@ -253,35 +245,46 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
 
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        @media (min-width: 768px) {
+            #sidebar {
+                transform: translateX(0) !important;
+            }
         }
     </style>
-
 </head>
-
 
 <body class="bg-slate-100 min-h-screen text-slate-800 flex">
 
+    <!-- OVERLAY MOBILE -->
+    <div id="sidebarOverlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden">
+    </div>
 
-    <!-- =========================================================
-     SIDEBAR
-========================================================= -->
+    <!-- SIDEBAR -->
+    <aside id="sidebar"
+        class="fixed md:sticky top-0 left-0 z-50
+               w-64 bg-slate-900 text-slate-300
+               flex flex-col min-h-screen
+               -translate-x-full md:translate-x-0">
 
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
-
-        <!-- Logo -->
+        <!-- LOGO -->
         <div class="p-5 border-b border-slate-800 flex items-center space-x-3">
 
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500
-                    flex items-center justify-center text-white text-xl font-bold
-                    shadow-lg shadow-emerald-500/20">
+                        flex items-center justify-center text-white text-xl font-bold
+                        shadow-lg shadow-emerald-500/20">
 
                 <i class="fa-solid fa-quran"></i>
 
             </div>
 
             <div>
-
                 <h1 class="font-bold text-white text-lg leading-tight">
                     E-Hafalan
                 </h1>
@@ -289,91 +292,85 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 <span class="text-xs text-emerald-400 font-medium">
                     Panel Santri
                 </span>
-
             </div>
+
+            <!-- TOMBOL TUTUP -->
+            <button id="closeSidebar"
+                type="button"
+                class="ml-auto text-slate-400 hover:text-white md:hidden">
+
+                <i class="fa-solid fa-xmark text-xl"></i>
+
+            </button>
 
         </div>
 
-
-        <!-- Navigation -->
+        <!-- MENU -->
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto text-sm">
 
-            <!-- Dashboard -->
             <a href="dasboard.php"
                 class="flex items-center space-x-3 px-4 py-3 rounded-xl
-                  bg-emerald-600 text-white font-medium
-                  shadow-lg shadow-emerald-600/30">
+                       bg-emerald-600 text-white font-medium
+                       shadow-lg shadow-emerald-600/30">
 
                 <i class="fa-solid fa-chart-pie text-lg w-5"></i>
-
                 <span>Dashboard</span>
 
             </a>
 
-
-            <!-- Hafalan -->
             <div class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
-                    tracking-wider text-slate-500">
+                        tracking-wider text-slate-500">
 
                 Hafalan Saya
 
             </div>
 
-
             <a href="hafalan.php"
                 class="flex items-center space-x-3 px-4 py-2.5 rounded-xl
-                  hover:bg-slate-800 hover:text-white transition-all">
+                       hover:bg-slate-800 hover:text-white transition-all">
 
                 <i class="fa-solid fa-book-quran text-slate-400 w-5"></i>
-
                 <span>Hafalan Saya</span>
 
             </a>
 
-
             <a href="target.php"
                 class="flex items-center space-x-3 px-4 py-2.5 rounded-xl
-                  hover:bg-slate-800 hover:text-white transition-all">
+                       hover:bg-slate-800 hover:text-white transition-all">
 
                 <i class="fa-solid fa-bullseye text-slate-400 w-5"></i>
-
                 <span>Target Hafalan</span>
 
             </a>
 
-
-            <!-- Profil -->
             <div class="pt-4 pb-1 px-4 text-[11px] font-bold uppercase
-                    tracking-wider text-slate-500">
+                        tracking-wider text-slate-500">
 
                 Akun Saya
 
             </div>
 
-
             <a href="profil.php"
                 class="flex items-center space-x-3 px-4 py-2.5 rounded-xl
-                  hover:bg-slate-800 hover:text-white transition-all">
+                       hover:bg-slate-800 hover:text-white transition-all">
 
                 <i class="fa-solid fa-user text-slate-400 w-5"></i>
-
                 <span>Profil Saya</span>
 
             </a>
 
         </nav>
 
-
-        <!-- User -->
+        <!-- USER -->
         <div class="p-4 border-t border-slate-800">
 
             <div class="flex items-center justify-between">
 
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3 min-w-0">
 
                     <div class="w-9 h-9 rounded-full bg-emerald-600
-                            flex items-center justify-center text-white
-                            font-bold text-sm">
+                                flex-shrink-0 flex items-center justify-center
+                                text-white font-bold text-sm">
 
                         <?php
                         echo strtoupper(
@@ -387,15 +384,10 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                     </div>
 
-
                     <div class="truncate w-28">
 
                         <p class="text-xs font-semibold text-white truncate">
-
-                            <?php
-                            echo htmlspecialchars($nama_user);
-                            ?>
-
+                            <?php echo htmlspecialchars($nama_user); ?>
                         </p>
 
                         <p class="text-[10px] text-slate-400 uppercase">
@@ -406,11 +398,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-                <!-- Logout -->
                 <a href="../../logout.php"
-                    class="text-slate-400 hover:text-red-400 p-2
-                      rounded-lg transition-colors"
+                    id="logoutButton"
+                    class="text-slate-400 hover:text-red-400 p-2 rounded-lg"
                     title="Logout">
 
                     <i class="fa-solid fa-right-from-bracket text-lg"></i>
@@ -423,75 +413,68 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
     </aside>
 
-
-
-    <!-- =========================================================
-     MAIN CONTENT
-========================================================= -->
-
+    <!-- KONTEN UTAMA -->
     <main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
 
+        <!-- HEADER -->
+        <header class="bg-white border-b border-slate-200
+                       px-4 sm:px-6 py-4
+                       flex items-center justify-between
+                       sticky top-0 z-20">
 
-        <!-- =====================================================
-         NAVBAR
-    ====================================================== -->
+            <div class="flex items-center gap-3 min-w-0">
 
-        <header class="bg-white border-b border-slate-200 px-6 py-4
-                   flex items-center justify-between sticky top-0 z-20">
+                <!-- TOMBOL BUKA SIDEBAR -->
+                <button id="openSidebar"
+                    type="button"
+                    class="md:hidden w-10 h-10 rounded-xl
+                           bg-slate-100 text-slate-600
+                           hover:bg-slate-200 flex-shrink-0">
 
-            <div>
+                    <i class="fa-solid fa-bars text-lg"></i>
 
-                <h2 class="text-xl font-bold text-slate-800">
-                    Dashboard Santri
-                </h2>
+                </button>
 
-                <p class="text-xs text-slate-500">
+                <div class="min-w-0">
 
-                    Selamat datang kembali,
-                    <?php echo htmlspecialchars($nama_user); ?>!
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-800">
+                        Dashboard Santri
+                    </h2>
 
-                </p>
+                    <p class="text-xs text-slate-500 truncate">
+                        Selamat datang kembali,
+                        <?php echo htmlspecialchars($nama_user); ?>!
+                    </p>
 
-            </div>
-
-
-            <div class="flex items-center space-x-3">
-
-                <!-- Target Button -->
-                <a href="target.php"
-                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700
-                      text-white rounded-xl text-xs font-medium
-                      shadow-md shadow-emerald-600/20 transition-all
-                      flex items-center space-x-2">
-
-                    <i class="fa-solid fa-bullseye"></i>
-
-                    <span>Lihat Target</span>
-
-                </a>
+                </div>
 
             </div>
+
+            <a href="target.php"
+                class="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700
+                       text-white rounded-xl text-xs font-medium
+                       shadow-md shadow-emerald-600/20
+                       flex items-center space-x-2 flex-shrink-0">
+
+                <i class="fa-solid fa-bullseye"></i>
+
+                <span class="hidden sm:inline">
+                    Lihat Target
+                </span>
+
+            </a>
 
         </header>
 
+        <!-- ISI DASHBOARD -->
+        <div class="p-4 sm:p-6 space-y-6 fade-in">
 
-
-        <!-- =====================================================
-         CONTENT
-    ====================================================== -->
-
-        <div class="p-6 space-y-6 fade-in">
-
-
-            <!-- =================================================
-             WELCOME CARD
-        ================================================== -->
-
+            <!-- WELCOME CARD -->
             <div class="bg-gradient-to-r from-emerald-600 to-teal-500
-                    rounded-2xl p-6 text-white shadow-lg">
+                        rounded-2xl p-4 sm:p-6 text-white shadow-lg">
 
                 <div class="flex flex-col md:flex-row
-                        md:items-center md:justify-between gap-5">
+                            md:items-center md:justify-between gap-5">
 
                     <div>
 
@@ -499,50 +482,40 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                             Assalamu'alaikum,
                         </p>
 
-                        <h1 class="text-2xl font-bold mt-1">
-
-                            <?php
-                            echo htmlspecialchars($nama_user);
-                            ?>
-
+                        <h1 class="text-xl sm:text-2xl font-bold mt-1">
+                            <?php echo htmlspecialchars($nama_user); ?>
                         </h1>
 
                         <p class="text-emerald-100 text-xs mt-2">
-
                             Terus semangat menghafal dan murajaah
                             Al-Qur'an setiap hari.
-
                         </p>
 
                     </div>
 
+                    <div class="flex items-center justify-between gap-3 w-full md:w-auto">
 
-                    <div class="flex items-center space-x-4">
-
-                        <div class="text-right">
+                        <div class="text-left sm:text-right">
 
                             <p class="text-xs text-emerald-100">
                                 Halaqah
                             </p>
 
-                            <p class="font-semibold">
-
+                            <p class="font-semibold text-sm sm:text-base">
                                 <?php
                                 echo htmlspecialchars(
                                     $data_santri['nama_halaqah']
                                         ?? 'Belum ditentukan'
                                 );
                                 ?>
-
                             </p>
 
                         </div>
 
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl
+                                    bg-white/20 flex items-center justify-center">
 
-                        <div class="w-14 h-14 rounded-2xl bg-white/20
-                                flex items-center justify-center">
-
-                            <i class="fa-solid fa-mosque text-2xl"></i>
+                            <i class="fa-solid fa-mosque text-xl sm:text-2xl"></i>
 
                         </div>
 
@@ -552,42 +525,33 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             </div>
 
+            <!-- STATISTIK -->
+            <div class="grid grid-cols-1 sm:grid-cols-2
+                        lg:grid-cols-4 gap-4 sm:gap-5">
 
-
-            <!-- =================================================
-             STATISTIC CARDS
-        ================================================== -->
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
-
-                <!-- Total Hafalan -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+                <!-- TOTAL HAFALAN -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl
+                            border border-slate-200/80 shadow-sm
+                            flex items-center justify-between gap-3">
 
                     <div>
-
                         <p class="text-xs text-slate-500 font-medium">
                             Total Hafalan
                         </p>
 
                         <h3 class="text-2xl font-bold text-slate-800 mt-1">
-
                             <?php echo $total_hafalan; ?>
 
                             <span class="text-sm font-medium text-slate-400">
                                 Juz
                             </span>
-
                         </h3>
-
                     </div>
 
-
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50
-                            text-emerald-600 flex items-center
-                            justify-center text-xl">
+                    <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl
+                                bg-emerald-50 text-emerald-600
+                                flex items-center justify-center text-xl
+                                flex-shrink-0">
 
                         <i class="fa-solid fa-book-quran"></i>
 
@@ -595,31 +559,25 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
-                <!-- Halaman -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+                <!-- TOTAL HALAMAN -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl
+                            border border-slate-200/80 shadow-sm
+                            flex items-center justify-between gap-3">
 
                     <div>
-
                         <p class="text-xs text-slate-500 font-medium">
                             Total Halaman
                         </p>
 
                         <h3 class="text-2xl font-bold text-slate-800 mt-1">
-
                             <?php echo $total_halaman; ?>
-
                         </h3>
-
                     </div>
 
-
-                    <div class="w-12 h-12 rounded-2xl bg-teal-50
-                            text-teal-600 flex items-center
-                            justify-center text-xl">
+                    <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl
+                                bg-teal-50 text-teal-600
+                                flex items-center justify-center text-xl
+                                flex-shrink-0">
 
                         <i class="fa-solid fa-file-lines"></i>
 
@@ -627,31 +585,25 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
-                <!-- Setoran -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+                <!-- TOTAL SETORAN -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl
+                            border border-slate-200/80 shadow-sm
+                            flex items-center justify-between gap-3">
 
                     <div>
-
                         <p class="text-xs text-slate-500 font-medium">
                             Total Setoran
                         </p>
 
                         <h3 class="text-2xl font-bold text-slate-800 mt-1">
-
                             <?php echo $total_setoran; ?>
-
                         </h3>
-
                     </div>
 
-
-                    <div class="w-12 h-12 rounded-2xl bg-amber-50
-                            text-amber-600 flex items-center
-                            justify-center text-xl">
+                    <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl
+                                bg-amber-50 text-amber-600
+                                flex items-center justify-center text-xl
+                                flex-shrink-0">
 
                         <i class="fa-solid fa-book-open"></i>
 
@@ -659,31 +611,25 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
-                <!-- Nilai -->
-                <div class="bg-white p-5 rounded-2xl
-                        border border-slate-200/80 shadow-sm
-                        flex items-center justify-between">
+                <!-- RATA-RATA NILAI -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl
+                            border border-slate-200/80 shadow-sm
+                            flex items-center justify-between gap-3">
 
                     <div>
-
                         <p class="text-xs text-slate-500 font-medium">
                             Rata-rata Nilai
                         </p>
 
                         <h3 class="text-2xl font-bold text-slate-800 mt-1">
-
                             <?php echo $rata_nilai; ?>
-
                         </h3>
-
                     </div>
 
-
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-50
-                            text-indigo-600 flex items-center
-                            justify-center text-xl">
+                    <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl
+                                bg-indigo-50 text-indigo-600
+                                flex items-center justify-center text-xl
+                                flex-shrink-0">
 
                         <i class="fa-solid fa-star"></i>
 
@@ -693,25 +639,17 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             </div>
 
-
-
-            <!-- =================================================
-             TARGET + PROFIL
-        ================================================== -->
-
+            <!-- TARGET DAN PROFIL -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
 
                 <!-- TARGET -->
                 <div class="lg:col-span-2 bg-white rounded-2xl
-                        border border-slate-200/80 shadow-sm overflow-hidden">
+                            border border-slate-200/80 shadow-sm overflow-hidden">
 
-
-                    <div class="p-5 border-b border-slate-100
-                            flex items-center justify-between">
+                    <div class="p-4 sm:p-5 border-b border-slate-100
+                                flex items-center justify-between gap-3">
 
                         <div>
-
                             <h3 class="font-bold text-slate-800">
                                 Target Hafalan
                             </h3>
@@ -719,35 +657,28 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                             <p class="text-xs text-slate-400 mt-1">
                                 Progress hafalan Anda
                             </p>
-
                         </div>
 
-
                         <a href="target.php"
-                            class="text-xs font-semibold text-emerald-600
-                              hover:underline">
-
+                            class="text-xs font-semibold text-emerald-600 hover:underline">
                             Detail
-
                         </a>
 
                     </div>
 
-
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
 
                         <?php if ($target): ?>
 
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center justify-between
+                                        mb-3 gap-3">
 
                                 <div>
-
                                     <p class="text-sm font-semibold text-slate-700">
                                         Target <?php echo $target_juz; ?> Juz
                                     </p>
 
                                     <p class="text-xs text-slate-400">
-
                                         Tenggat:
                                         <?php
                                         echo date(
@@ -755,15 +686,12 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                             strtotime($target['tgl_tenggat'])
                                         );
                                         ?>
-
                                     </p>
-
                                 </div>
 
-
                                 <span class="px-3 py-1 rounded-full
-                                         bg-emerald-100 text-emerald-700
-                                         text-xs font-semibold">
+                                             bg-emerald-100 text-emerald-700
+                                             text-xs font-semibold">
 
                                     <?php echo $persentase_target; ?>%
 
@@ -771,18 +699,14 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                             </div>
 
-
-                            <!-- Progress -->
                             <div class="w-full bg-slate-100 rounded-full h-3">
 
-                                <div
-                                    class="bg-emerald-500 h-3 rounded-full transition-all"
+                                <div class="bg-emerald-500 h-3 rounded-full"
                                     style="width: <?php echo $persentase_target; ?>%;">
 
                                 </div>
 
                             </div>
-
 
                             <div class="flex justify-between mt-2">
 
@@ -800,10 +724,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                             <div class="text-center py-5">
 
-                                <div class="w-12 h-12 mx-auto
-                                        rounded-full bg-slate-100
-                                        flex items-center justify-center
-                                        text-slate-400">
+                                <div class="w-12 h-12 mx-auto rounded-full
+                                            bg-slate-100 flex items-center
+                                            justify-center text-slate-400">
 
                                     <i class="fa-solid fa-bullseye"></i>
 
@@ -821,14 +744,11 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
                 <!-- PROFIL SINGKAT -->
                 <div class="bg-white rounded-2xl
-                        border border-slate-200/80 shadow-sm overflow-hidden">
+                            border border-slate-200/80 shadow-sm overflow-hidden">
 
-
-                    <div class="p-5 border-b border-slate-100">
+                    <div class="p-4 sm:p-5 border-b border-slate-100">
 
                         <h3 class="font-bold text-slate-800">
                             Profil Singkat
@@ -836,28 +756,26 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                     </div>
 
-
-                    <div class="p-5 space-y-4">
-
+                    <div class="p-4 sm:p-5 space-y-4">
 
                         <!-- NIS -->
                         <div class="flex items-center space-x-3">
 
                             <div class="w-9 h-9 rounded-xl bg-emerald-50
-                                    text-emerald-600 flex items-center
-                                    justify-center">
+                                        text-emerald-600 flex items-center
+                                        justify-center flex-shrink-0">
 
                                 <i class="fa-solid fa-id-card"></i>
 
                             </div>
 
-                            <div>
+                            <div class="min-w-0">
 
                                 <p class="text-[11px] text-slate-400">
                                     NIS
                                 </p>
 
-                                <p class="text-sm font-semibold text-slate-700">
+                                <p class="text-sm font-semibold text-slate-700 break-words">
 
                                     <?php
                                     echo htmlspecialchars(
@@ -871,25 +789,24 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         </div>
 
-
-                        <!-- Halaqah -->
+                        <!-- HALAQAH -->
                         <div class="flex items-center space-x-3">
 
                             <div class="w-9 h-9 rounded-xl bg-teal-50
-                                    text-teal-600 flex items-center
-                                    justify-center">
+                                        text-teal-600 flex items-center
+                                        justify-center flex-shrink-0">
 
                                 <i class="fa-solid fa-users"></i>
 
                             </div>
 
-                            <div>
+                            <div class="min-w-0">
 
                                 <p class="text-[11px] text-slate-400">
                                     Halaqah
                                 </p>
 
-                                <p class="text-sm font-semibold text-slate-700">
+                                <p class="text-sm font-semibold text-slate-700 break-words">
 
                                     <?php
                                     echo htmlspecialchars(
@@ -904,25 +821,24 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         </div>
 
-
-                        <!-- Ustadz -->
+                        <!-- USTADZ -->
                         <div class="flex items-center space-x-3">
 
                             <div class="w-9 h-9 rounded-xl bg-indigo-50
-                                    text-indigo-600 flex items-center
-                                    justify-center">
+                                        text-indigo-600 flex items-center
+                                        justify-center flex-shrink-0">
 
                                 <i class="fa-solid fa-user-tie"></i>
 
                             </div>
 
-                            <div>
+                            <div class="min-w-0">
 
                                 <p class="text-[11px] text-slate-400">
                                     Ustadz Pembimbing
                                 </p>
 
-                                <p class="text-sm font-semibold text-slate-700">
+                                <p class="text-sm font-semibold text-slate-700 break-words">
 
                                     <?php
                                     echo htmlspecialchars(
@@ -937,12 +853,11 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         </div>
 
-
                         <a href="profil.php"
                             class="block text-center mt-4 px-4 py-2
-                              border border-slate-200 rounded-xl
-                              text-xs font-semibold text-slate-600
-                              hover:bg-slate-50 transition">
+                                  border border-slate-200 rounded-xl
+                                  text-xs font-semibold text-slate-600
+                                  hover:bg-slate-50 transition">
 
                             Lihat Profil
 
@@ -954,21 +869,14 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             </div>
 
-
-
-            <!-- =================================================
-             SETORAN TERBARU
-        ================================================== -->
-
+            <!-- SETORAN TERBARU -->
             <div class="bg-white rounded-2xl
-                    border border-slate-200/80 shadow-sm overflow-hidden">
+                        border border-slate-200/80 shadow-sm overflow-hidden">
 
-
-                <div class="p-5 border-b border-slate-100
-                        flex items-center justify-between">
+                <div class="p-4 sm:p-5 border-b border-slate-100
+                            flex items-center justify-between gap-3">
 
                     <div>
-
                         <h3 class="font-bold text-slate-800">
                             Setoran Hafalan Terbaru
                         </h3>
@@ -976,13 +884,10 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                         <p class="text-xs text-slate-400 mt-1">
                             Riwayat setoran hafalan Anda
                         </p>
-
                     </div>
 
-
                     <a href="hafalan.php"
-                        class="text-xs font-semibold text-emerald-600
-                          hover:underline">
+                        class="text-xs font-semibold text-emerald-600 hover:underline">
 
                         Lihat Semua
 
@@ -990,50 +895,30 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
+                <!-- TABEL DAPAT DIGESER DI HP -->
                 <div class="overflow-x-auto">
 
-                    <table class="w-full text-left border-collapse text-sm">
+                    <table class="w-full min-w-[650px] text-left
+                                  border-collapse text-sm">
 
                         <thead>
 
                             <tr class="bg-slate-50 text-slate-500
-                                   text-xs uppercase tracking-wider
-                                   border-b border-slate-100">
+                                       text-xs uppercase tracking-wider
+                                       border-b border-slate-100">
 
-                                <th class="py-3 px-5 font-semibold">
-                                    Jenis
-                                </th>
-
-                                <th class="py-3 px-5 font-semibold">
-                                    Surah
-                                </th>
-
-                                <th class="py-3 px-5 font-semibold">
-                                    Ayat
-                                </th>
-
-                                <th class="py-3 px-5 font-semibold">
-                                    Juz
-                                </th>
-
-                                <th class="py-3 px-5 font-semibold">
-                                    Nilai
-                                </th>
-
-                                <th class="py-3 px-5 font-semibold">
-                                    Tanggal
-                                </th>
+                                <th class="py-3 px-5 font-semibold">Jenis</th>
+                                <th class="py-3 px-5 font-semibold">Surah</th>
+                                <th class="py-3 px-5 font-semibold">Ayat</th>
+                                <th class="py-3 px-5 font-semibold">Juz</th>
+                                <th class="py-3 px-5 font-semibold">Nilai</th>
+                                <th class="py-3 px-5 font-semibold">Tanggal</th>
 
                             </tr>
 
                         </thead>
 
-
-                        <tbody class="divide-y divide-slate-100
-                                  text-slate-700">
-
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
 
                             <?php if (mysqli_num_rows($result_setoran) > 0): ?>
 
@@ -1041,16 +926,13 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                     <tr class="hover:bg-slate-50/80 transition-colors">
 
-
-                                        <!-- Jenis -->
                                         <td class="py-3 px-5">
 
                                             <?php if ($row['jenis'] == 'ziyadah'): ?>
 
                                                 <span class="px-2.5 py-1 rounded-full
-                                                     text-xs font-semibold
-                                                     bg-emerald-100
-                                                     text-emerald-700">
+                                                             text-xs font-semibold
+                                                             bg-emerald-100 text-emerald-700">
 
                                                     Ziyadah
 
@@ -1059,9 +941,8 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                             <?php else: ?>
 
                                                 <span class="px-2.5 py-1 rounded-full
-                                                     text-xs font-semibold
-                                                     bg-indigo-100
-                                                     text-indigo-700">
+                                                             text-xs font-semibold
+                                                             bg-indigo-100 text-indigo-700">
 
                                                     Murajaah
 
@@ -1071,39 +952,30 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                         </td>
 
-
-                                        <!-- Surah -->
                                         <td class="py-3 px-5">
 
                                             <p class="font-medium">
-
                                                 <?php
                                                 echo htmlspecialchars(
-                                                    $row['nama_surah']
-                                                        ?? '-'
+                                                    $row['nama_surah'] ?? '-'
                                                 );
                                                 ?>
-
                                             </p>
 
                                             <?php if (!empty($row['nama_arab'])): ?>
 
                                                 <span class="text-xs text-slate-400">
-
                                                     <?php
                                                     echo htmlspecialchars(
                                                         $row['nama_arab']
                                                     );
                                                     ?>
-
                                                 </span>
 
                                             <?php endif; ?>
 
                                         </td>
 
-
-                                        <!-- Ayat -->
                                         <td class="py-3 px-5">
 
                                             <?php
@@ -1114,39 +986,24 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                         </td>
 
-
-                                        <!-- Juz -->
                                         <td class="py-3 px-5">
-
                                             Juz <?php echo $row['juz']; ?>
-
                                         </td>
 
-
-                                        <!-- Nilai -->
                                         <td class="py-3 px-5">
 
-                                            <span class="font-semibold
-                                                 text-emerald-600">
-
-                                                <?php
-                                                echo $row['nilai_angka'];
-                                                ?>
-
+                                            <span class="font-semibold text-emerald-600">
+                                                <?php echo $row['nilai_angka']; ?>
                                             </span>
 
                                         </td>
 
-
-                                        <!-- Tanggal -->
                                         <td class="py-3 px-5 text-xs text-slate-500">
 
                                             <?php
                                             echo date(
                                                 'd M Y H:i',
-                                                strtotime(
-                                                    $row['tanggal_setor']
-                                                )
+                                                strtotime($row['tanggal_setor'])
                                             );
                                             ?>
 
@@ -1156,30 +1013,24 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                 <?php endwhile; ?>
 
-
                             <?php else: ?>
 
                                 <tr>
 
                                     <td colspan="6"
-                                        class="py-8 text-center
-                                       text-slate-400 text-xs">
+                                        class="py-8 text-center text-slate-400 text-xs">
 
-                                        <div class="mb-2">
+                                        <i class="fa-solid fa-book-open text-2xl mb-2"></i>
 
-                                            <i class="fa-solid fa-book-open
-                                              text-2xl"></i>
-
-                                        </div>
-
-                                        Belum ada riwayat setoran hafalan.
+                                        <p>
+                                            Belum ada riwayat setoran hafalan.
+                                        </p>
 
                                     </td>
 
                                 </tr>
 
                             <?php endif; ?>
-
 
                         </tbody>
 
@@ -1189,22 +1040,15 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             </div>
 
-
-
-            <!-- =================================================
-             NILAI & PENGUMUMAN
-        ================================================== -->
-
+            <!-- NILAI DAN PENGUMUMAN -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
 
                 <!-- NILAI -->
                 <div class="bg-white rounded-2xl
-                        border border-slate-200/80 shadow-sm overflow-hidden">
+                            border border-slate-200/80 shadow-sm overflow-hidden">
 
-
-                    <div class="p-5 border-b border-slate-100
-                            flex items-center justify-between">
+                    <div class="p-4 sm:p-5 border-b border-slate-100
+                                flex items-center justify-between gap-3">
 
                         <h3 class="font-bold text-slate-800">
                             Nilai Terbaru
@@ -1219,9 +1063,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                     </div>
 
-
-                    <div class="p-5">
-
+                    <div class="p-4 sm:p-5">
 
                         <?php if (mysqli_num_rows($result_nilai) > 0): ?>
 
@@ -1230,20 +1072,16 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                 <?php while ($nilai = mysqli_fetch_assoc($result_nilai)): ?>
 
                                     <div class="flex items-center justify-between
-                                            border-b border-slate-100 pb-3">
+                                                gap-3 border-b border-slate-100 pb-3">
 
+                                        <div class="min-w-0">
 
-                                        <div>
-
-                                            <p class="text-sm font-semibold
-                                                  text-slate-700">
-
+                                            <p class="text-sm font-semibold text-slate-700">
                                                 <?php
                                                 echo htmlspecialchars(
                                                     $nilai['jenis_ujian']
                                                 );
                                                 ?>
-
                                             </p>
 
                                             <p class="text-xs text-slate-400 mt-1">
@@ -1259,9 +1097,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                                 <?php
                                                 echo date(
                                                     'd M Y',
-                                                    strtotime(
-                                                        $nilai['tanggal']
-                                                    )
+                                                    strtotime($nilai['tanggal'])
                                                 );
                                                 ?>
 
@@ -1269,43 +1105,28 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                         </div>
 
+                                        <div class="text-right flex-shrink-0">
 
-                                        <div class="text-right">
-
-                                            <p class="text-lg font-bold
-                                                  text-emerald-600">
-
-                                                <?php
-                                                echo $nilai['nilai'];
-                                                ?>
-
+                                            <p class="text-lg font-bold text-emerald-600">
+                                                <?php echo $nilai['nilai']; ?>
                                             </p>
 
                                             <?php if ($nilai['nilai'] >= 80): ?>
 
-                                                <span class="text-[10px]
-                                                         text-emerald-600">
-
+                                                <span class="text-[10px] text-emerald-600">
                                                     Sangat Baik
-
                                                 </span>
 
                                             <?php elseif ($nilai['nilai'] >= 70): ?>
 
-                                                <span class="text-[10px]
-                                                         text-teal-600">
-
+                                                <span class="text-[10px] text-teal-600">
                                                     Baik
-
                                                 </span>
 
                                             <?php else: ?>
 
-                                                <span class="text-[10px]
-                                                         text-amber-600">
-
+                                                <span class="text-[10px] text-amber-600">
                                                     Perlu Ditingkatkan
-
                                                 </span>
 
                                             <?php endif; ?>
@@ -1320,8 +1141,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         <?php else: ?>
 
-                            <div class="text-center py-6
-                                    text-slate-400 text-xs">
+                            <div class="text-center py-6 text-slate-400 text-xs">
 
                                 <i class="fa-solid fa-star text-2xl mb-2"></i>
 
@@ -1337,14 +1157,11 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 </div>
 
-
-
                 <!-- PENGUMUMAN -->
                 <div class="bg-white rounded-2xl
-                        border border-slate-200/80 shadow-sm overflow-hidden">
+                            border border-slate-200/80 shadow-sm overflow-hidden">
 
-
-                    <div class="p-5 border-b border-slate-100">
+                    <div class="p-4 sm:p-5 border-b border-slate-100">
 
                         <h3 class="font-bold text-slate-800">
                             Pengumuman
@@ -1352,9 +1169,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                     </div>
 
-
-                    <div class="p-5">
-
+                    <div class="p-4 sm:p-5">
 
                         <?php if (
                             $result_pengumuman &&
@@ -1364,26 +1179,23 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                             <div class="space-y-4">
 
                                 <?php while (
-                                    $pengumuman =
-                                    mysqli_fetch_assoc($result_pengumuman)
+                                    $pengumuman = mysqli_fetch_assoc($result_pengumuman)
                                 ): ?>
 
                                     <div class="flex items-start space-x-3">
 
                                         <div class="w-9 h-9 rounded-xl
-                                                bg-amber-50 text-amber-600
-                                                flex items-center justify-center
-                                                flex-shrink-0">
+                                                    bg-amber-50 text-amber-600
+                                                    flex items-center justify-center
+                                                    flex-shrink-0">
 
                                             <i class="fa-solid fa-bullhorn"></i>
 
                                         </div>
 
+                                        <div class="min-w-0">
 
-                                        <div>
-
-                                            <h4 class="text-sm font-semibold
-                                                   text-slate-700">
+                                            <h4 class="text-sm font-semibold text-slate-700">
 
                                                 <?php
                                                 echo htmlspecialchars(
@@ -1393,9 +1205,8 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                             </h4>
 
-
-                                            <p class="text-xs text-slate-500
-                                                  mt-1 line-clamp-2">
+                                            <p class="text-xs text-slate-500 mt-1
+                                                      line-clamp-2">
 
                                                 <?php
                                                 echo htmlspecialchars(
@@ -1405,16 +1216,12 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                                             </p>
 
-
-                                            <p class="text-[10px]
-                                                  text-slate-400 mt-1">
+                                            <p class="text-[10px] text-slate-400 mt-1">
 
                                                 <?php
                                                 echo date(
                                                     'd M Y H:i',
-                                                    strtotime(
-                                                        $pengumuman['tanggal']
-                                                    )
+                                                    strtotime($pengumuman['tanggal'])
                                                 );
                                                 ?>
 
@@ -1430,8 +1237,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         <?php else: ?>
 
-                            <div class="text-center py-6
-                                    text-slate-400 text-xs">
+                            <div class="text-center py-6 text-slate-400 text-xs">
 
                                 <i class="fa-solid fa-bullhorn text-2xl mb-2"></i>
 
@@ -1449,51 +1255,81 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             </div>
 
-
-
         </div>
 
     </main>
 
-
-
-    <!-- =========================================================
-     JAVASCRIPT
-========================================================= -->
-
+    <!-- JAVASCRIPT -->
     <script>
-        /*
-    |--------------------------------------------------------------------------
-    | AUTO HIDE ALERT / ANIMASI
-    |--------------------------------------------------------------------------
-    */
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // ==========================================
+        // SIDEBAR RESPONSIVE
+        // ==========================================
 
-            const elements = document.querySelectorAll('.fade-in');
+        const sidebar = document.getElementById('sidebar');
+        const openSidebar = document.getElementById('openSidebar');
+        const closeSidebar = document.getElementById('closeSidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-            elements.forEach(function(element) {
+        function bukaSidebar() {
 
-                element.style.opacity = '1';
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.remove('hidden');
+
+        }
+
+        function tutupSidebar() {
+
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+
+        }
+
+        if (openSidebar) {
+
+            openSidebar.addEventListener('click', bukaSidebar);
+
+        }
+
+        if (closeSidebar) {
+
+            closeSidebar.addEventListener('click', tutupSidebar);
+
+        }
+
+        if (sidebarOverlay) {
+
+            sidebarOverlay.addEventListener('click', tutupSidebar);
+
+        }
+
+        // Menutup sidebar setelah memilih menu di HP
+
+        const menuSidebar = sidebar.querySelectorAll('a');
+
+        menuSidebar.forEach(function (menu) {
+
+            menu.addEventListener('click', function () {
+
+                if (window.innerWidth < 768) {
+
+                    tutupSidebar();
+
+                }
 
             });
 
         });
 
+        // ==========================================
+        // KONFIRMASI LOGOUT
+        // ==========================================
 
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIRMASI LOGOUT
-        |--------------------------------------------------------------------------
-        */
-
-        const logoutButton = document.querySelector(
-            'a[href="../../logout.php"]'
-        );
+        const logoutButton = document.getElementById('logoutButton');
 
         if (logoutButton) {
 
-            logoutButton.addEventListener('click', function(event) {
+            logoutButton.addEventListener('click', function (event) {
 
                 const yakin = confirm(
                     'Apakah Anda yakin ingin keluar dari sistem?'
@@ -1508,8 +1344,8 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             });
 
         }
-    </script>
 
+    </script>
 
 </body>
 
