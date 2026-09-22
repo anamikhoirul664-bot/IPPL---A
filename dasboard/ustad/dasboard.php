@@ -8,21 +8,47 @@ checkRole('ustad');
 $user_id = getUserId();
 $nama_user = getUserNama();
 
-// Fetch ringkasan statistik
-$total_santri   = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM santri"))['total'] ?? 0;
-$total_wali     = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM wali_santri"))['total'] ?? 0;
-$total_pengasuh = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM pengasuh"))['total'] ?? 0;
-$total_setoran  = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM setoran"))['total'] ?? 0;
+// Cek koneksi database
+if (!$koneksi) {
+    die("Koneksi database gagal: " . mysqli_connect_error());
+}
 
-// Fetch setoran hafalan terbaru (Relasi setoran -> santri -> users & surah)
-$query_setoran = "SELECT s.*, st.nis, u.nama AS nama_santri, sr.nama_surah 
+// 1. Fetch Ringkasan Statistik
+$q_santri     = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM santri");
+$total_santri = $q_santri ? (mysqli_fetch_assoc($q_santri)['total'] ?? 0) : 0;
+
+$q_wali       = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM wali_santri");
+$total_wali   = $q_wali ? (mysqli_fetch_assoc($q_wali)['total'] ?? 0) : 0;
+
+$q_pengasuh   = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM pengasuh");
+$total_pengasuh = $q_pengasuh ? (mysqli_fetch_assoc($q_pengasuh)['total'] ?? 0) : 0;
+
+$q_setoran    = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM setoran");
+$total_setoran = $q_setoran ? (mysqli_fetch_assoc($q_setoran)['total'] ?? 0) : 0;
+
+// 2. Fetch 5 Setoran Terbaru Disesuaikan dengan Skema Database
+$query_setoran = "SELECT 
+                    s.id,
+                    s.ayat_mulai,
+                    s.ayat_selesai,
+                    s.juz,
+                    s.kelancaran,
+                    s.tanggal_setor,
+                    st.nis,
+                    u.nama AS nama_santri,
+                    sr.nama_surah
                   FROM setoran s
-                  LEFT JOIN santri st ON s.santri_id = st.id
-                  LEFT JOIN users u ON st.user_id = u.id
-                  LEFT JOIN surah sr ON s.surah_id = sr.id
-                  ORDER BY s.tanggal_setor DESC, s.id DESC LIMIT 5";
+                  INNER JOIN santri st ON s.santri_id = st.id
+                  INNER JOIN users u ON st.user_id = u.id
+                  INNER JOIN surah sr ON s.surah_id = sr.id
+                  ORDER BY s.tanggal_setor DESC, s.id DESC 
+                  LIMIT 5";
 
 $result_setoran = mysqli_query($koneksi, $query_setoran);
+
+if (!$result_setoran) {
+    error_log("Query Error: " . mysqli_error($koneksi));
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -35,7 +61,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Alpine.js untuk interaksi mobile & animasi dropdown/sidebar/modal -->
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <!-- Google Fonts & FontAwesome -->
@@ -45,7 +71,6 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
     <style>
         body { font-family: 'Poppins', sans-serif; }
         
-        /* Keyframe Custom Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -54,14 +79,8 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
             animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* Custom Scrollbar Utility */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE dan Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
@@ -79,7 +98,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
          class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
          style="display: none;"></div>
 
-    <!-- SIDEBAR (Laptop Display & Mobile Drawer) -->
+    <!-- SIDEBAR -->
     <aside :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
            class="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
         
@@ -160,20 +179,19 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
             </a>
         </nav>
 
-        <!-- User Profile Card / Logout -->
+        <!-- User Profile Card -->
         <div class="p-4 border-t border-slate-800 bg-slate-950/40">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                        <?php echo strtoupper(substr($nama_user, 0, 1)); ?>
+                        <?php echo strtoupper(substr($nama_user ?? 'U', 0, 1)); ?>
                     </div>
                     <div class="truncate w-28">
-                        <p class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($nama_user); ?></p>
+                        <p class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($nama_user ?? 'Ustadz'); ?></p>
                         <p class="text-[10px] text-emerald-400 uppercase font-medium">Ustadz</p>
                     </div>
                 </div>
 
-                <!-- TOMBOL LOGOUT (MEMBUAT MODAL KELUAR) -->
                 <button type="button" @click="logoutModalOpen = true" class="text-slate-400 hover:text-red-400 p-2 rounded-lg transition-colors cursor-pointer" title="Logout">
                     <i class="fa-solid fa-right-from-bracket text-base"></i>
                 </button>
@@ -181,7 +199,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
         </div>
     </aside>
 
-    <!-- BOTTOM NAVIGATION UNTUK MOBILE -->
+    <!-- BOTTOM NAV MOBILE -->
     <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md text-slate-400 border-t border-slate-800 z-40 flex justify-around items-center p-2 md:hidden">
         <a href="dasboard.php" class="flex flex-col items-center p-1 text-emerald-400 font-medium">
             <i class="fa-solid fa-chart-pie text-lg"></i>
@@ -207,7 +225,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
         </button>
     </nav>
 
-    <!-- MAIN CONTENT AREA -->
+    <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
 
         <!-- NAVBAR TOP -->
@@ -218,7 +236,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
                 </button>
                 <div>
                     <h2 class="text-lg sm:text-xl font-bold text-slate-800">Ringkasan Dashboard</h2>
-                    <p class="text-xs text-slate-500 hidden sm:block">Selamat datang kembali, Ustadz <?php echo htmlspecialchars($nama_user); ?>!</p>
+                    <p class="text-xs text-slate-500 hidden sm:block">Selamat datang kembali, Ustadz <?php echo htmlspecialchars($nama_user ?? 'Ustadz'); ?>!</p>
                 </div>
             </div>
 
@@ -309,22 +327,25 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-slate-700">
-                            <?php if (mysqli_num_rows($result_setoran) > 0): ?>
+                            <?php if ($result_setoran && mysqli_num_rows($result_setoran) > 0): ?>
                                 <?php while ($row = mysqli_fetch_assoc($result_setoran)): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors">
                                         <td class="py-3 px-4 sm:px-5 font-medium text-slate-800 whitespace-nowrap">
-                                            <?php echo htmlspecialchars($row['nama_santri'] ?? 'Santri'); ?>
-                                            <span class="block text-[10px] text-slate-400">NIS: <?php echo htmlspecialchars($row['nis'] ?? '-'); ?></span>
+                                            <?php echo htmlspecialchars($row['nama_santri']); ?>
+                                            <span class="block text-[10px] text-slate-400">NIS: <?php echo htmlspecialchars($row['nis']); ?></span>
                                         </td>
-                                        <td class="py-3 px-4 sm:px-5 font-medium whitespace-nowrap"><?php echo htmlspecialchars($row['nama_surah'] ?? 'Surah'); ?></td>
+                                        <td class="py-3 px-4 sm:px-5 font-medium whitespace-nowrap"><?php echo htmlspecialchars($row['nama_surah']); ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap"><?php echo $row['ayat_mulai']; ?> - <?php echo $row['ayat_selesai']; ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap">Juz <?php echo $row['juz']; ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap">
                                             <?php
                                             $kelancaran = $row['kelancaran'];
-                                            $badge = 'bg-amber-100 text-amber-700';
+                                            $badge = 'bg-slate-100 text-slate-700';
+
                                             if ($kelancaran == 'Sangat Lancar' || $kelancaran == 'Lancar') {
                                                 $badge = 'bg-emerald-100 text-emerald-700';
+                                            } else if ($kelancaran == 'Kurang Lancar') {
+                                                $badge = 'bg-amber-100 text-amber-700';
                                             } else if ($kelancaran == 'Mengulang') {
                                                 $badge = 'bg-red-100 text-red-700';
                                             }
@@ -352,7 +373,7 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
 
     </main>
 
-    <!-- MODAL CONFIRMATION LOGOUT (Menggunakan Alpine.js) -->
+    <!-- MODAL CONFIRMATION LOGOUT -->
     <div x-show="logoutModalOpen" 
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
@@ -364,7 +385,6 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4" 
          style="display: none;">
          
-        <!-- Card Box Modal -->
         <div x-show="logoutModalOpen"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 scale-95"
@@ -374,16 +394,13 @@ $result_setoran = mysqli_query($koneksi, $query_setoran);
              x-transition:leave-end="opacity-0 scale-95"
              class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
             
-            <!-- Icon Warning/Logout -->
             <div class="w-14 h-14 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
                 <i class="fa-solid fa-right-from-bracket text-2xl"></i>
             </div>
 
-            <!-- Judul & Pesan -->
             <h3 class="text-lg font-bold text-white mb-1">Konfirmasi Logout</h3>
             <p class="text-sm text-slate-400 mb-6">Apakah Anda yakin ingin keluar dari sistem ini?</p>
 
-            <!-- Tombol Aksi -->
             <div class="flex items-center space-x-3">
                 <button type="button" @click="logoutModalOpen = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-medium text-sm transition-all cursor-pointer">
                     Batal

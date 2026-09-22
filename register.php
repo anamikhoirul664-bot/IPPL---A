@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
     $confirm  = $_POST['confirm_password'];
 
-    // Validasi
+    // Validasi input
     if (empty($nama) || empty($username) || empty($email) || empty($role) || empty($password)) {
         $error = "Semua kolom wajib diisi.";
     } elseif ($password !== $confirm) {
@@ -40,20 +40,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Ambil ID user yang baru saja dibuat
                 $user_id = mysqli_insert_id($koneksi);
 
-                // Jika yang mendaftar adalah santri
+                // 1. Jika Role SANTRI -> Insert ke tabel santri
                 if ($role == 'santri') {
-
-                    // Buat data santri
                     $nis = 'NIS' . $user_id;
-
                     $santri_stmt = mysqli_prepare($koneksi, "INSERT INTO santri (user_id, nis) VALUES (?, ?)");
                     mysqli_stmt_bind_param($santri_stmt, "is", $user_id, $nis);
 
                     if (!mysqli_stmt_execute($santri_stmt)) {
-                        $error = "Akun berhasil dibuat, tetapi data santri gagal dibuat.";
+                        $error = "Akun berhasil dibuat, tetapi data profil santri gagal dibuat.";
                     }
-
                     mysqli_stmt_close($santri_stmt);
+                } 
+                // 2. Jika Role WALI -> Insert ke tabel wali_santri
+                elseif ($role == 'wali') {
+                    $wali_stmt = mysqli_prepare($koneksi, "INSERT INTO wali_santri (user_id) VALUES (?)");
+                    mysqli_stmt_bind_param($wali_stmt, "i", $user_id);
+
+                    if (!mysqli_stmt_execute($wali_stmt)) {
+                        $error = "Akun berhasil dibuat, tetapi data profil wali gagal dibuat.";
+                    }
+                    mysqli_stmt_close($wali_stmt);
+                } 
+                // 3. Jika Role PENGASUH -> Insert ke tabel pengasuh
+                elseif ($role == 'pengasuh') {
+                    $pengasuh_stmt = mysqli_prepare($koneksi, "INSERT INTO pengasuh (user_id) VALUES (?)");
+                    mysqli_stmt_bind_param($pengasuh_stmt, "i", $user_id);
+
+                    if (!mysqli_stmt_execute($pengasuh_stmt)) {
+                        $error = "Akun berhasil dibuat, tetapi data profil pengasuh gagal dibuat.";
+                    }
+                    mysqli_stmt_close($pengasuh_stmt);
+                } 
+                // 4. Jika Role USTADZ -> Insert ke tabel ustadz
+                elseif ($role == 'ustad') {
+                    $ustadz_stmt = mysqli_prepare($koneksi, "INSERT INTO ustadz (user_id) VALUES (?)");
+                    mysqli_stmt_bind_param($ustadz_stmt, "i", $user_id);
+
+                    if (!mysqli_stmt_execute($ustadz_stmt)) {
+                        $error = "Akun berhasil dibuat, tetapi data profil ustadz gagal dibuat.";
+                    }
+                    mysqli_stmt_close($ustadz_stmt);
                 }
 
                 if (empty($error)) {

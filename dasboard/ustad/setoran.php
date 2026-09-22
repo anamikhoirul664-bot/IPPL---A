@@ -102,7 +102,7 @@ $result = mysqli_query($koneksi, $query);
         </div>
 
         <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto text-sm no-scrollbar">
-            <a href="dahboard.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800/80 hover:text-white transition-all duration-200">
+            <a href="dasboard.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800/80 hover:text-white transition-all duration-200">
                 <i class="fa-solid fa-chart-pie text-slate-400 w-5"></i>
                 <span>Dashboard</span>
             </a>

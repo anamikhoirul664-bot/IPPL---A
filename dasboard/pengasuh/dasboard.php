@@ -51,10 +51,10 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
                     },
                     colors: {
                         app: {
-                            sidebar: '#061E29',     /* Dark Teal/Navy persis foto */
-                            active: '#0D9488',      /* Tosca/Teal Active persis foto */
+                            sidebar: '#061E29',     /* Dark Teal/Navy */
+                            active: '#0D9488',      /* Tosca/Teal Active */
                             activeHover: '#0F766E',
-                            bg: '#F4F6F8',          /* Light Background persis foto */
+                            bg: '#F4F6F8',          /* Light Background */
                             card: '#FFFFFF',
                             textNav: '#94A3B8',
                             headerBtn: '#0D9488'
@@ -94,7 +94,7 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
          @click="sidebarOpen = false" 
          class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 md:hidden"></div>
 
-    <!-- SIDEBAR NAVIGATION (WARNA SAMAKAN PERSIS DENGAN FOTO) -->
+    <!-- SIDEBAR NAVIGATION -->
     <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
            class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-app-sidebar text-slate-300 min-h-screen p-4 flex flex-col justify-between transition-transform duration-300 ease-in-out md:translate-x-0 border-r border-slate-800/50 shadow-2xl md:shadow-none">
         
@@ -117,7 +117,6 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
 
             <!-- Navigation Links -->
             <nav class="space-y-1">
-                <!-- Dashboard Link (Warna Hijau Tosca Persis Foto) -->
                 <a href="dasboard.php" class="flex items-center space-x-3 bg-app-active hover:bg-app-activeHover text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all duration-150 shadow-md">
                     <i class="fa-solid fa-gauge-high w-5 text-center text-sm"></i>
                     <span>Dashboard</span>
@@ -148,7 +147,7 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
             </nav>
         </div>
 
-        <!-- User Profile Card di bagian bawah sidebar (Sesuai Foto) -->
+        <!-- User Profile Card -->
         <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between px-2">
             <div class="flex items-center space-x-2.5 overflow-hidden">
                 <div class="w-8 h-8 rounded-full bg-app-active text-white font-bold flex items-center justify-center text-xs">
@@ -183,14 +182,13 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
 
         <div class="p-4 sm:p-8 lg:p-8 flex-1 max-w-7xl w-full mx-auto animate-fade-in">
             
-            <!-- HEADER BARIS ATAS PERSIS GAMBAR -->
+            <!-- HEADER -->
             <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 tracking-tight">Ringkasan Dashboard</h1>
                     <p class="text-xs text-slate-400 mt-0.5">Selamat datang kembali, KH. <span class="font-medium text-slate-600"><?php echo htmlspecialchars($nama_pengasuh); ?></span>!</p>
                 </div>
 
-                <!-- Tombol aksi pojok kanan (Hijau Tosca persis tombol + Catat Setoran di foto) -->
                 <div class="flex items-center space-x-3">
                     <a href="monitoring.php" class="inline-flex items-center space-x-2 bg-app-active hover:bg-app-activeHover text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all duration-150">
                         <i class="fa-solid fa-eye text-xs"></i>
@@ -199,7 +197,7 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
                 </div>
             </header>
 
-            <!-- STATS CARDS (4 KOLOM PERSIS DENGAN MODEL DARI FOTO) -->
+            <!-- STATS CARDS -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 
                 <!-- Card 1: Total Santri -->
@@ -260,7 +258,7 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
 
             </div>
 
-            <!-- ACTION BANNER (MENGGUNAKAN TEMA SKEMA WARNA DARI FOTO) -->
+            <!-- ACTION BANNER -->
             <div class="bg-app-sidebar rounded-2xl p-6 text-white flex flex-col md:flex-row justify-between items-center shadow-lg border border-slate-800">
                 <div class="mb-4 md:mb-0 max-w-xl">
                     <h2 class="text-lg font-bold mb-1">Monitoring & Laporan Pesantren</h2>
