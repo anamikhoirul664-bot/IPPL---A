@@ -14,7 +14,6 @@ $santri_query = mysqli_query($koneksi, "SELECT s.id, u.nama, s.nis FROM santri s
 $cur_user_id = getUserId();
 $get_ust = mysqli_query($koneksi, "SELECT id FROM pengasuh WHERE user_id = $cur_user_id");
 
-// Fallback jika menggunakan nama tabel 'ustadz'
 if (!$get_ust || mysqli_num_rows($get_ust) == 0) {
     $get_ust = mysqli_query($koneksi, "SELECT id FROM ustadz WHERE user_id = $cur_user_id");
 }
@@ -22,10 +21,128 @@ if (!$get_ust || mysqli_num_rows($get_ust) == 0) {
 $ustadz_data = mysqli_fetch_assoc($get_ust);
 $ustadz_id = $ustadz_data['id'] ?? NULL;
 
+// Array Data 114 Surah Al-Qur'an (Key sebagai ID Surah 1-114)
+$daftar_surah = [
+    1 => ["nama" => "Al-Fatihah", "juz" => 1],
+    2 => ["nama" => "Al-Baqarah", "juz" => 1],
+    3 => ["nama" => "Ali 'Imran", "juz" => 3],
+    4 => ["nama" => "An-Nisa'", "juz" => 4],
+    5 => ["nama" => "Al-Ma'idah", "juz" => 6],
+    6 => ["nama" => "Al-An'am", "juz" => 7],
+    7 => ["nama" => "Al-A'raf", "juz" => 8],
+    8 => ["nama" => "Al-Anfal", "juz" => 9],
+    9 => ["nama" => "At-Taubah", "juz" => 10],
+    10 => ["nama" => "Yunus", "juz" => 11],
+    11 => ["nama" => "Hud", "juz" => 11],
+    12 => ["nama" => "Yusuf", "juz" => 12],
+    13 => ["nama" => "Ar-Ra'd", "juz" => 13],
+    14 => ["nama" => "Ibrahim", "juz" => 13],
+    15 => ["nama" => "Al-Hijr", "juz" => 14],
+    16 => ["nama" => "An-Nahl", "juz" => 14],
+    17 => ["nama" => "Al-Isra'", "juz" => 15],
+    18 => ["nama" => "Al-Kahf", "juz" => 15],
+    19 => ["nama" => "Maryam", "juz" => 16],
+    20 => ["nama" => "Taha", "juz" => 16],
+    21 => ["nama" => "Al-Anbiya'", "juz" => 17],
+    22 => ["nama" => "Al-Hajj", "juz" => 17],
+    23 => ["nama" => "Al-Mu'minun", "juz" => 18],
+    24 => ["nama" => "An-Nur", "juz" => 18],
+    25 => ["nama" => "Al-Furqan", "juz" => 18],
+    26 => ["nama" => "Asy-Syu'ara'", "juz" => 19],
+    27 => ["nama" => "An-Naml", "juz" => 19],
+    28 => ["nama" => "Al-Qasas", "juz" => 20],
+    29 => ["nama" => "Al-'Ankabut", "juz" => 20],
+    30 => ["nama" => "Ar-Rum", "juz" => 21],
+    31 => ["nama" => "Luqman", "juz" => 21],
+    32 => ["nama" => "As-Sajdah", "juz" => 21],
+    33 => ["nama" => "Al-Ahzab", "juz" => 21],
+    34 => ["nama" => "Saba'", "juz" => 22],
+    35 => ["nama" => "Fatir", "juz" => 22],
+    36 => ["nama" => "Yasin", "juz" => 22],
+    37 => ["nama" => "As-Saffat", "juz" => 23],
+    38 => ["nama" => "Sad", "juz" => 23],
+    39 => ["nama" => "Az-Zumar", "juz" => 23],
+    40 => ["nama" => "Ghafir", "juz" => 24],
+    41 => ["nama" => "Fussilat", "juz" => 24],
+    42 => ["nama" => "Asy-Syura", "juz" => 25],
+    43 => ["nama" => "Az-Zukhruf", "juz" => 25],
+    44 => ["nama" => "Ad-Dukhan", "juz" => 25],
+    45 => ["nama" => "Al-Jasiyah", "juz" => 25],
+    46 => ["nama" => "Al-Ahqaf", "juz" => 26],
+    47 => ["nama" => "Muhammad", "juz" => 26],
+    48 => ["nama" => "Al-Fath", "juz" => 26],
+    49 => ["nama" => "Al-Hujurat", "juz" => 26],
+    50 => ["nama" => "Qaf", "juz" => 26],
+    51 => ["nama" => "Az-Zariyat", "juz" => 26],
+    52 => ["nama" => "At-Tur", "juz" => 27],
+    53 => ["nama" => "An-Najm", "juz" => 27],
+    54 => ["nama" => "Al-Qamar", "juz" => 27],
+    55 => ["nama" => "Ar-Rahman", "juz" => 27],
+    56 => ["nama" => "Al-Waqi'ah", "juz" => 27],
+    57 => ["nama" => "Al-Hadid", "juz" => 27],
+    58 => ["nama" => "Al-Mujadilah", "juz" => 28],
+    59 => ["nama" => "Al-Hasyr", "juz" => 28],
+    60 => ["nama" => "Al-Mumtahanah", "juz" => 28],
+    61 => ["nama" => "As-Saff", "juz" => 28],
+    62 => ["nama" => "Al-Jumu'ah", "juz" => 28],
+    63 => ["nama" => "Al-Munafiqun", "juz" => 28],
+    64 => ["nama" => "At-Taghabun", "juz" => 28],
+    65 => ["nama" => "At-Talaq", "juz" => 28],
+    66 => ["nama" => "At-Tahrim", "juz" => 28],
+    67 => ["nama" => "Al-Mulk", "juz" => 29],
+    68 => ["nama" => "Al-Qalam", "juz" => 29],
+    69 => ["nama" => "Al-Haqqah", "juz" => 29],
+    70 => ["nama" => "Al-Ma'arij", "juz" => 29],
+    71 => ["nama" => "Nuh", "juz" => 29],
+    72 => ["nama" => "Al-Jinn", "juz" => 29],
+    73 => ["nama" => "Al-Muzzammil", "juz" => 29],
+    74 => ["nama" => "Al-Muddassir", "juz" => 29],
+    75 => ["nama" => "Al-Qiyamah", "juz" => 29],
+    76 => ["nama" => "Al-Insan", "juz" => 29],
+    77 => ["nama" => "Al-Mursalat", "juz" => 29],
+    78 => ["nama" => "An-Naba'", "juz" => 30],
+    79 => ["nama" => "An-Nazi'at", "juz" => 30],
+    80 => ["nama" => "'Abasa", "juz" => 30],
+    81 => ["nama" => "At-Takwir", "juz" => 30],
+    82 => ["nama" => "Al-Infitar", "juz" => 30],
+    83 => ["nama" => "Al-Mutaffifin", "juz" => 30],
+    84 => ["nama" => "Al-Insyiqaq", "juz" => 30],
+    85 => ["nama" => "Al-Buruj", "juz" => 30],
+    86 => ["nama" => "At-Tariq", "juz" => 30],
+    87 => ["nama" => "Al-A'la", "juz" => 30],
+    88 => ["nama" => "Al-Ghasyiyah", "juz" => 30],
+    89 => ["nama" => "Al-Fajr", "juz" => 30],
+    90 => ["nama" => "Al-Balad", "juz" => 30],
+    91 => ["nama" => "Asy-Syams", "juz" => 30],
+    92 => ["nama" => "Al-Lail", "juz" => 30],
+    93 => ["nama" => "Ad-Duha", "juz" => 30],
+    94 => ["nama" => "Asy-Syarh", "juz" => 30],
+    95 => ["nama" => "At-Tin", "juz" => 30],
+    96 => ["nama" => "Al-'Alaq", "juz" => 30],
+    97 => ["nama" => "Al-Qadr", "juz" => 30],
+    98 => ["nama" => "Al-Bayyinah", "juz" => 30],
+    99 => ["nama" => "Az-Zalzalah", "juz" => 30],
+    100 => ["nama" => "Al-'Adiyat", "juz" => 30],
+    101 => ["nama" => "Al-Qari'ah", "juz" => 30],
+    102 => ["nama" => "At-Takasur", "juz" => 30],
+    103 => ["nama" => "Al-'Asr", "juz" => 30],
+    104 => ["nama" => "Al-Humazah", "juz" => 30],
+    105 => ["nama" => "Al-Fil", "juz" => 30],
+    106 => ["nama" => "Quraisy", "juz" => 30],
+    107 => ["nama" => "Al-Ma'un", "juz" => 30],
+    108 => ["nama" => "Al-Kausar", "juz" => 30],
+    109 => ["nama" => "Al-Kafirun", "juz" => 30],
+    110 => ["nama" => "An-Nasr", "juz" => 30],
+    111 => ["nama" => "Al-Lahab", "juz" => 30],
+    112 => ["nama" => "Al-Ikhlas", "juz" => 30],
+    113 => ["nama" => "Al-Falaq", "juz" => 30],
+    114 => ["nama" => "An-Nas", "juz" => 30]
+];
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $santri_id    = intval($_POST['santri_id']);
     $tanggal      = $_POST['tanggal'];
-    $surah        = trim($_POST['surah']);
+    $surah_id     = intval($_POST['surah']);
     $ayat_mulai   = intval($_POST['ayat_mulai']);
     $ayat_selesai = intval($_POST['ayat_selesai']);
     $juz          = intval($_POST['juz']);
@@ -33,17 +150,47 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $tajwid       = $_POST['tajwid'];
     $catatan      = trim($_POST['catatan']);
 
-    if (empty($santri_id) || empty($surah) || empty($juz) || empty($tanggal)) {
+    // LOGIKA HITUNG NILAI ANGKA BERDASARKAN KELANCARAN & TAJWID
+    $nilai_angka = 0;
+    
+    // Perhitungan Poin Kelancaran
+    if ($kelancaran == 'Lancar') {
+        $poin_lancar = 50;
+    } elseif ($kelancaran == 'Cukup Lancar') {
+        $poin_lancar = 40;
+    } else { // Kurang Lancar
+        $poin_lancar = 25;
+    }
+
+    // Perhitungan Poin Tajwid
+    if ($tajwid == 'Sangat Baik') {
+        $poin_tajwid = 50;
+    } elseif ($tajwid == 'Baik') {
+        $poin_tajwid = 40;
+    } elseif ($tajwid == 'Cukup') {
+        $poin_tajwid = 30;
+    } else { // Perlu Perbaikan
+        $poin_tajwid = 20;
+    }
+
+    // Total Nilai Akhir
+    $nilai_angka = $poin_lancar + $poin_tajwid;
+
+    if (empty($santri_id) || empty($surah_id) || empty($juz) || empty($tanggal)) {
         $error = "Pilih Santri, Surah, Juz, dan Tanggal setoran terlebih dahulu.";
     } else {
-        $stmt = mysqli_prepare($koneksi, "INSERT INTO setoran_hafalan (santri_id, ustadz_id, tanggal, surah, ayat_mulai, ayat_selesai, juz, kelancaran, tajwid, catatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, "iisssiisss", $santri_id, $ustadz_id, $tanggal, $surah, $ayat_mulai, $ayat_selesai, $juz, $kelancaran, $tajwid, $catatan);
+        // PREPARED STATEMENT FIX (11 kolom & 11 parameter tipe 'iisiiiisssd')
+        $stmt = mysqli_prepare($koneksi, "INSERT INTO setoran (santri_id, ustadz_id, tanggal_setor, surah_id, ayat_mulai, ayat_selesai, juz, kelancaran, tajwid, catatan, nilai_angka) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        // Tipe parameter yang benar:
+        // santri_id (i), ustadz_id (i), tanggal (s), surah_id (i), ayat_mulai (i), ayat_selesai (i), juz (i), kelancaran (s), tajwid (s), catatan (s), nilai_angka (d)
+        mysqli_stmt_bind_param($stmt, "iisiiiisssd", $santri_id, $ustadz_id, $tanggal, $surah_id, $ayat_mulai, $ayat_selesai, $juz, $kelancaran, $tajwid, $catatan, $nilai_angka);
 
         if (mysqli_stmt_execute($stmt)) {
             mysqli_stmt_close($stmt);
 
-            // Hitung total juz yang sudah pernah disetorkan santri (update ke tabel santri)
-            $count_query = mysqli_query($koneksi, "SELECT COUNT(DISTINCT juz) AS total_juz FROM setoran_hafalan WHERE santri_id = $santri_id AND kelancaran IN ('Lancar', 'Cukup Lancar')");
+            // Hitung total juz yang sudah disetorkan
+            $count_query = mysqli_query($koneksi, "SELECT COUNT(DISTINCT juz) AS total_juz FROM setoran WHERE santri_id = $santri_id AND kelancaran IN ('Lancar', 'Cukup Lancar')");
             $count_data = mysqli_fetch_assoc($count_query);
             $total_juz = $count_data['total_juz'] ?? 0;
 
@@ -52,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header("Location: setoran.php?msg=success");
             exit();
         } else {
-            $error = "Gagal mencatat setoran hafalan.";
+            $error = "Gagal mencatat setoran hafalan: " . mysqli_error($koneksi);
             mysqli_stmt_close($stmt);
         }
     }
@@ -212,12 +359,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <h3 class="text-xs md:text-sm font-bold text-emerald-600 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">Materi Hafalan</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div class="sm:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Surah *</label>
-                            <input type="text" name="surah" required placeholder="Contoh: Al-Baqarah" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Surah *</label>
+                            <select name="surah" id="surahSelect" onchange="updateJuz()" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500">
+                                <option value="">-- Pilih Surah --</option>
+                                <?php foreach ($daftar_surah as $no => $item): ?>
+                                    <option value="<?php echo $no; ?>" data-juz="<?php echo $item['juz']; ?>">
+                                        <?php echo $no . ". " . $item['nama'] . " (Juz " . $item['juz'] . ")"; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Juz Ke- *</label>
-                            <input type="number" name="juz" min="1" max="30" value="1" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500">
+                            <select name="juz" id="juzSelect" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500">
+                                <option value="">-- Pilih Juz --</option>
+                                <?php for ($j = 1; $j <= 30; $j++): ?>
+                                    <option value="<?php echo $j; ?>">Juz <?php echo $j; ?></option>
+                                <?php endfor; ?>
+                            </select>
                         </div>
                         <div class="flex space-x-2">
                             <div class="w-1/2">
@@ -268,13 +427,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </main>
 
-    <!-- SCRIPT TOGGLE SIDEBAR MOBILE -->
+    <!-- SCRIPT UTILS -->
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
+        }
+
+        // Otomatis memilih Juz sesuai Surah yang dipilih
+        function updateJuz() {
+            const surahSelect = document.getElementById('surahSelect');
+            const juzSelect = document.getElementById('juzSelect');
+            const selectedOption = surahSelect.options[surahSelect.selectedIndex];
+            
+            const defaultJuz = selectedOption.getAttribute('data-juz');
+            if (defaultJuz) {
+                juzSelect.value = defaultJuz;
+            }
         }
     </script>
 </body>

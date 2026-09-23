@@ -29,6 +29,8 @@ $query = "SELECT s_tr.*, u_santri.nama AS nama_santri, s.nis, s.kelas_kelompok, 
           LEFT JOIN users u_ustadz ON s_tr.ustadz_id = u_ustadz.id
           ORDER BY s_tr.tanggal_setor DESC, s_tr.id DESC";
 $result = mysqli_query($koneksi, $query);
+
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -42,23 +44,6 @@ $result = mysqli_query($koneksi, $query);
     <style>
         body { font-family: 'Poppins', sans-serif; }
         
-        /* Custom Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-        .glass-header {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-        }
-    </style>
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-        
-        /* Keyframe Custom Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -67,16 +52,13 @@ $result = mysqli_query($koneksi, $query);
             animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* ------------------------------------------------ */
-        /* TAMBAHKAN CLASS INI UNTUK SEMBUNYIKAN SCROLLBAR  */
-        /* ------------------------------------------------ */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE dan Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row relative overflow-x-hidden">
@@ -160,8 +142,6 @@ $result = mysqli_query($koneksi, $query);
                 <span>Pengaturan Sistem</span>
             </a>
         </nav>
-
-
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -237,52 +217,77 @@ $result = mysqli_query($koneksi, $query);
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-slate-700">
-                            <?php if (mysqli_num_rows($result) > 0): ?>
-                                <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                    <tr class="hover:bg-slate-50/90 transition-colors duration-150">
-                                        <td class="py-3.5 px-5 font-medium text-slate-600 whitespace-nowrap">
-                                            <?php echo date('d M Y', strtotime($row['tanggal_setor'])); ?>
-                                            <span class="block text-[11px] text-slate-400 font-normal"><?php echo date('H:i', strtotime($row['created_at'])); ?> WIB</span>
-                                        </td>
-                                        <td class="py-3.5 px-5 whitespace-nowrap">
-                                            <div class="font-semibold text-slate-800"><?php echo htmlspecialchars($row['nama_santri']); ?></div>
-                                            <span class="block text-xs font-normal text-slate-400">NIS: <?php echo htmlspecialchars($row['nis']); ?></span>
-                                        </td>
-                                        <td class="py-3.5 px-5 whitespace-nowrap">
-                                            <span class="font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md inline-block mb-0.5">Surah <?php echo htmlspecialchars($row['surah_id']); ?></span>
-                                            <span class="block text-xs font-normal text-slate-500">Ayat <?php echo htmlspecialchars($row['ayat_mulai']); ?> - <?php echo htmlspecialchars($row['ayat_selesai']); ?></span>
-                                        </td>
-                                        <td class="py-3.5 px-5 font-bold text-slate-700 whitespace-nowrap">Juz <?php echo htmlspecialchars($row['juz']); ?></td>
-                                        <td class="py-3.5 px-5 whitespace-nowrap">
-                                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center space-x-1.5
-                                                <?php 
-                                                    if($row['kelancaran'] == 'Lancar') echo 'bg-emerald-100/80 text-emerald-700 border border-emerald-200/50';
-                                                    elseif($row['kelancaran'] == 'Cukup Lancar') echo 'bg-blue-100/80 text-blue-700 border border-blue-200/50';
-                                                    else echo 'bg-amber-100/80 text-amber-700 border border-amber-200/50';
-                                                ?>">
-                                                <span class="w-1.5 h-1.5 rounded-full <?php echo $row['kelancaran'] == 'Lancar' ? 'bg-emerald-500' : ($row['kelancaran'] == 'Cukup Lancar' ? 'bg-blue-500' : 'bg-amber-500'); ?>"></span>
-                                                <span><?php echo htmlspecialchars($row['kelancaran']); ?></span>
-                                            </span>
-                                        </td>
-                                        <td class="py-3.5 px-5 text-xs text-slate-600 whitespace-nowrap"><?php echo htmlspecialchars($row['tajwid']); ?></td>
-                                        <td class="py-3.5 px-5 text-xs text-slate-500 whitespace-nowrap"><?php echo htmlspecialchars($row['nama_penguji'] ?? 'Ustadz'); ?></td>
-                                        <td class="py-3.5 px-5 text-center whitespace-nowrap">
-                                            <a href="setoran.php?action=delete&id=<?php echo $row['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus data setoran ini?');" class="inline-flex items-center space-x-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm">
-                                                <i class="fa-solid fa-trash text-[11px]"></i>
-                                                <span>Hapus</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="8" class="py-12 text-center text-slate-400 text-xs">
-                                        <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
-                                        Belum ada data setoran hafalan. Klik <b>Catat Setoran Baru</b> untuk menambahkan.
+                        <?php if (mysqli_num_rows($result) > 0): ?>
+                            <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                                <tr class="hover:bg-slate-50/90 transition-colors duration-150">
+                                    <!-- Tanggal & Waktu -->
+                                    <td class="py-3.5 px-5 font-medium text-slate-600 whitespace-nowrap">
+                                        <?php 
+                                            $tgl = !empty($row['tanggal_setor']) ? date('d M Y', strtotime($row['tanggal_setor'])) : '-';
+                                            $jam = !empty($row['created_at']) ? date('H:i', strtotime($row['created_at'])) . ' WIB' : '-';
+                                            echo $tgl;
+                                        ?>
+                                        <span class="block text-[11px] text-slate-400 font-normal"><?php echo $jam; ?></span>
+                                    </td>
+
+                                    <!-- Santri -->
+                                    <td class="py-3.5 px-5 whitespace-nowrap">
+                                        <div class="font-semibold text-slate-800"><?php echo htmlspecialchars($row['nama_santri'] ?? '-'); ?></div>
+                                        <span class="block text-xs font-normal text-slate-400">NIS: <?php echo htmlspecialchars($row['nis'] ?? '-'); ?></span>
+                                    </td>
+
+                                    <!-- Surah & Ayat -->
+                                    <td class="py-3.5 px-5 whitespace-nowrap">
+                                        <span class="font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md inline-block mb-0.5">Surah <?php echo htmlspecialchars($row['surah_id'] ?? '-'); ?></span>
+                                        <span class="block text-xs font-normal text-slate-500">Ayat <?php echo htmlspecialchars($row['ayat_mulai'] ?? '0'); ?> - <?php echo htmlspecialchars($row['ayat_selesai'] ?? '0'); ?></span>
+                                    </td>
+
+                                    <!-- Juz -->
+                                    <td class="py-3.5 px-5 font-bold text-slate-700 whitespace-nowrap">Juz <?php echo htmlspecialchars($row['juz'] ?? '-'); ?></td>
+
+                                    <!-- Kelancaran (Sudah Dibersihkan) -->
+                                    <td class="py-3.5 px-5 whitespace-nowrap">
+                                        <?php 
+                                            $kelancaran_raw = $row['kelancaran'] ?? '';
+                                            $kelancaran     = strtolower(trim($kelancaran_raw));
+
+                                            if ($kelancaran === 'lancar') {
+                                                echo '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Lancar</span>';
+                                            } elseif (in_array($kelancaran, ['cukup lancar', 'cukup'])) {
+                                                echo '<span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">Cukup Lancar</span>';
+                                            } elseif (in_array($kelancaran, ['kurang lancar', 'kurang'])) {
+                                                echo '<span class="px-2.5 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-semibold">Kurang Lancar</span>';
+                                            } else {
+                                                $label = !empty($kelancaran_raw) ? htmlspecialchars($kelancaran_raw) : '-';
+                                                echo '<span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">' . $label . '</span>';
+                                            }
+                                        ?>
+                                    </td>
+
+                                    <!-- Tajwid -->
+                                    <td class="py-3.5 px-5 text-xs text-slate-600 whitespace-nowrap"><?php echo htmlspecialchars($row['tajwid'] ?? '-'); ?></td>
+
+                                    <!-- Penguji -->
+                                    <td class="py-3.5 px-5 text-xs text-slate-500 whitespace-nowrap"><?php echo htmlspecialchars($row['nama_penguji'] ?? 'Ustadz'); ?></td>
+
+                                    <!-- Aksi -->
+                                    <td class="py-3.5 px-5 text-center whitespace-nowrap">
+                                        <a href="setoran.php?action=delete&id=<?php echo $row['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus data setoran ini?');" class="inline-flex items-center space-x-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs font-medium transition-all duration-200 shadow-sm">
+                                            <i class="fa-solid fa-trash text-[11px]"></i>
+                                            <span>Hapus</span>
+                                        </a>
                                     </td>
                                 </tr>
-                            <?php endif; ?>
-                        </tbody>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" class="py-12 text-center text-slate-400 text-xs">
+                                    <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                                    Belum ada data setoran hafalan. Klik <b>Catat Setoran Baru</b> untuk menambahkan.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
                     </table>
                 </div>
             </div>
