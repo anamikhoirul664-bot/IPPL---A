@@ -4,7 +4,7 @@ require_once 'config/koneksi.php';
 
 // Jika pengguna sudah login, langsung alihkan ke dashboard rolenya masing-masing
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-    header("Location: dashboard/" . $_SESSION['role'] . "/dashboard.php");
+    header("Location: dasboard/" . $_SESSION['role'] . "/dasboard.php");
     exit();
 }
 
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_stmt_close($stmt);
 
                     // Redireksi langsung ke Dashboard sesuai role
-                    header("Location: dashboard/" . $_SESSION['role'] . "/dashboard.php");
+                    header("Location: dasboard/" . $_SESSION['role'] . "/dasboard.php");
                     exit();
                 } else {
                     $error = "Password yang Anda masukkan salah.";

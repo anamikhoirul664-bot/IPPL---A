@@ -239,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto text-sm">
-            <a href="dashboard.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all">
+            <a href="dasboard.php" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all">
                 <i class="fa-solid fa-chart-pie text-slate-400 w-5"></i>
                 <span>Dashboard</span>
             </a>

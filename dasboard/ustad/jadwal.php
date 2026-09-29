@@ -186,7 +186,7 @@ $result = mysqli_query($koneksi, $query);
 
     <!-- BOTTOM NAVIGATION (Khusus Mobile) -->
     <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md text-slate-400 border-t border-slate-800 z-40 flex justify-around items-center p-2 md:hidden">
-        <a href="dashboard.php" class="flex flex-col items-center p-1 hover:text-white transition-colors">
+        <a href="dasboard.php" class="flex flex-col items-center p-1 hover:text-white transition-colors">
             <i class="fa-solid fa-chart-pie text-lg"></i>
             <span class="text-[10px] mt-0.5">Home</span>
         </a>
