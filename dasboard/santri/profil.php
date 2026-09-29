@@ -21,7 +21,6 @@ $query = "
         s.kelas_kelompok,
         s.target_juz,
         s.total_hafalan,
-        s.total_hafalan_halaman,
 
         u.nama,
         u.username,
@@ -190,8 +189,7 @@ $status_akun = $data['status'] ?? 'Aktif';
     <!-- OVERLAY SIDEBAR MOBILE -->
     <div
         id="sidebarOverlay"
-        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"
-        onclick="tutupSidebar()">
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden">
     </div>
 
     <!-- ================= SIDEBAR ================= -->
@@ -203,7 +201,7 @@ $status_akun = $data['status'] ?? 'Aktif';
         <div class="flex justify-end p-3 md:hidden">
             <button
                 type="button"
-                onclick="tutupSidebar()"
+                id="closeSidebar"
                 class="text-slate-400 hover:text-white text-xl"
                 aria-label="Tutup menu">
                 <i class="fa-solid fa-xmark"></i>
@@ -346,7 +344,7 @@ $status_akun = $data['status'] ?? 'Aktif';
 
                 <!-- Logout -->
                 <a href="../../logout.php"
-                    onclick="return confirm('Apakah Anda yakin ingin logout?')"
+                    id="logoutButton"
                     class="text-slate-400 hover:text-red-400 p-2
                     rounded-lg transition-colors"
                     title="Logout">
@@ -375,7 +373,7 @@ $status_akun = $data['status'] ?? 'Aktif';
                 <!-- Tombol Menu Mobile -->
                 <button
                     type="button"
-                    onclick="bukaSidebar()"
+                    id="openSidebar"
                     class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
                     aria-label="Buka menu">
                     <i class="fa-solid fa-bars"></i>
@@ -821,7 +819,7 @@ $status_akun = $data['status'] ?? 'Aktif';
                 <!-- Statistik -->
                 <div class="p-5">
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
 
                         <!-- Target -->
@@ -884,37 +882,6 @@ $status_akun = $data['status'] ?? 'Aktif';
                                     flex items-center justify-center">
 
                                     <i class="fa-solid fa-book-open"></i>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- Total Halaman -->
-                        <div class="bg-slate-50 border border-slate-200
-                            rounded-2xl p-5">
-
-                            <div class="flex items-center justify-between">
-
-                                <div>
-
-                                    <p class="text-xs text-slate-500">
-                                        Total Halaman
-                                    </p>
-
-                                    <p class="text-2xl font-bold text-slate-800 mt-1">
-                                        <?php echo (int)$data['total_hafalan_halaman']; ?>
-                                    </p>
-
-                                </div>
-
-                                <div class="w-11 h-11 rounded-xl
-                                    bg-indigo-50 text-indigo-600
-                                    flex items-center justify-center">
-
-                                    <i class="fa-solid fa-file-lines"></i>
 
                                 </div>
 
@@ -1120,36 +1087,241 @@ $status_akun = $data['status'] ?? 'Aktif';
 
     </main>
 
+    <!-- ================= POPUP LOGOUT ================= -->
+    <div id="logoutModal"
+        class="fixed inset-0 z-[999] hidden items-center justify-center
+            bg-slate-950/70 backdrop-blur-sm px-5">
+
+        <div id="logoutBox"
+            class="w-full max-w-[340px] rounded-2xl bg-[#111a30]
+                border border-slate-700/40 p-5 shadow-2xl
+                opacity-0 scale-95 transition-all duration-200">
+
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center
+                    justify-center rounded-full bg-red-500/10">
+
+                <i class="fa-solid fa-right-from-bracket
+                      text-xl text-red-500"></i>
+
+            </div>
+
+            <h3 class="text-center text-sm font-bold text-white">
+                Konfirmasi Logout
+            </h3>
+
+            <p class="mx-auto mt-1.5 max-w-[260px] text-center
+                  text-[10px] leading-relaxed text-slate-400">
+
+                Apakah Anda yakin ingin keluar dari sistem ini?
+
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-2.5">
+
+                <button type="button"
+                    id="cancelLogout"
+                    class="rounded-xl border border-slate-700
+                           bg-transparent py-2.5 text-xs font-semibold
+                           text-slate-300 transition hover:bg-slate-800">
+
+                    Batal
+
+                </button>
+
+                <button type="button"
+                    id="confirmLogout"
+                    class="rounded-xl bg-red-500 py-2.5 text-xs
+                           font-semibold text-white transition
+                           hover:bg-red-600">
+
+                    Ya, Keluar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay =
-            document.getElementById('sidebarOverlay');
+        document.addEventListener('DOMContentLoaded', function() {
 
-        function bukaSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
-        }
+            // ================= SIDEBAR =================
 
-        function tutupSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-        }
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
 
-        document
-            .querySelectorAll('#sidebar a')
-            .forEach(function(link) {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 767) {
-                        tutupSidebar();
-                    }
-                });
-            });
+            function bukaSidebar() {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+            }
 
-        window.addEventListener('resize', function() {
-            if (window.innerWidth >= 768) {
+            function tutupSidebar() {
                 sidebar.classList.remove('active');
                 sidebarOverlay.classList.remove('active');
             }
+
+            if (openSidebar) {
+                openSidebar.addEventListener('click', bukaSidebar);
+            }
+
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', tutupSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', tutupSidebar);
+            }
+
+
+            document
+                .querySelectorAll('#sidebar a')
+                .forEach(function(link) {
+
+                    link.addEventListener('click', function() {
+
+                        if (window.innerWidth <= 767) {
+                            tutupSidebar();
+                        }
+
+                    });
+
+                });
+
+
+            window.addEventListener('resize', function() {
+
+                if (window.innerWidth >= 768) {
+
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+
+                }
+
+            });
+
+
+            // ================= LOGOUT =================
+
+            const logoutButton =
+                document.getElementById('logoutButton');
+
+            const logoutModal =
+                document.getElementById('logoutModal');
+
+            const logoutBox =
+                document.getElementById('logoutBox');
+
+            const cancelLogout =
+                document.getElementById('cancelLogout');
+
+            const confirmLogout =
+                document.getElementById('confirmLogout');
+
+
+            if (
+                logoutButton &&
+                logoutModal &&
+                logoutBox &&
+                cancelLogout &&
+                confirmLogout
+            ) {
+
+                // Klik tombol logout
+                logoutButton.addEventListener('click', function(event) {
+
+                    event.preventDefault();
+
+                    logoutModal.classList.remove('hidden');
+                    logoutModal.classList.add('flex');
+
+                    setTimeout(function() {
+
+                        logoutBox.classList.remove(
+                            'opacity-0',
+                            'scale-95'
+                        );
+
+                        logoutBox.classList.add(
+                            'opacity-100',
+                            'scale-100'
+                        );
+
+                    }, 10);
+
+                });
+
+
+                // Tombol Batal
+                cancelLogout.addEventListener('click', function() {
+
+                    tutupLogout();
+
+                });
+
+
+                // Tombol Ya, Keluar
+                confirmLogout.addEventListener('click', function() {
+
+                    window.location.href = logoutButton.href;
+
+                });
+
+
+                // Klik di luar popup
+                logoutModal.addEventListener('click', function(event) {
+
+                    if (event.target === logoutModal) {
+
+                        tutupLogout();
+
+                    }
+
+                });
+
+
+                // Tombol ESC
+                document.addEventListener('keydown', function(event) {
+
+                    if (
+                        event.key === 'Escape' &&
+                        !logoutModal.classList.contains('hidden')
+                    ) {
+
+                        tutupLogout();
+
+                    }
+
+                });
+
+
+                // Fungsi menutup popup
+                function tutupLogout() {
+
+                    logoutBox.classList.remove(
+                        'opacity-100',
+                        'scale-100'
+                    );
+
+                    logoutBox.classList.add(
+                        'opacity-0',
+                        'scale-95'
+                    );
+
+                    setTimeout(function() {
+
+                        logoutModal.classList.remove('flex');
+                        logoutModal.classList.add('hidden');
+
+                    }, 200);
+
+                }
+
+            }
+
         });
     </script>
 

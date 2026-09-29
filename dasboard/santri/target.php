@@ -121,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_target'])) {
 */
 
 $total_hafalan = $data_santri['total_hafalan'] ?? 0;
-$total_halaman = $data_santri['total_hafalan_halaman'] ?? 0;
 
 
 /*
@@ -197,11 +196,9 @@ if ($target_aktif) {
             $persentase_target = 100;
         }
     }
-
 } else {
 
     $target_juz_aktif = 0;
-
 }
 
 
@@ -285,7 +282,6 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-
         body {
             font-family: 'Poppins', sans-serif;
         }
@@ -354,7 +350,6 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
             }
 
         }
-
     </style>
 
 </head>
@@ -367,8 +362,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
     <div
         id="sidebarOverlay"
-        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"
-        onclick="tutupSidebar()">
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden">
     </div>
 
 
@@ -386,7 +380,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
             <button
                 type="button"
-                onclick="tutupSidebar()"
+                id="closeSidebar"
                 class="text-slate-400 hover:text-white text-xl"
                 aria-label="Tutup menu">
 
@@ -562,6 +556,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                 <a
                     href="../../logout.php"
+                    id="logoutButton"
                     class="text-slate-400 hover:text-red-400 p-2
                     rounded-lg transition-colors"
                     title="Logout">
@@ -600,7 +595,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                 <button
                     type="button"
-                    onclick="bukaSidebar()"
+                    id="openSidebar"
                     class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
                     aria-label="Buka menu">
 
@@ -691,7 +686,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                     <div class="flex items-center justify-between gap-3 w-full md:w-auto">
 
-                       <div class="text-left min-w-0"> 
+                        <div class="text-left min-w-0">
 
                             <p class="text-xs text-emerald-100">
                                 Halaqah
@@ -703,7 +698,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                                 echo htmlspecialchars(
                                     $data_santri['nama_halaqah']
-                                    ?? 'Belum ditentukan'
+                                        ?? 'Belum ditentukan'
                                 );
 
                                 ?>
@@ -777,7 +772,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                         <div>
                             <label for="target_juz"
-                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                class="block text-sm font-medium text-slate-600 mb-2">
                                 Target Juz
                             </label>
 
@@ -797,7 +792,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                         <div>
                             <label for="tgl_mulai"
-                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                class="block text-sm font-medium text-slate-600 mb-2">
                                 Tanggal Mulai
                             </label>
 
@@ -814,7 +809,7 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
 
                         <div>
                             <label for="tgl_tenggat"
-                                   class="block text-sm font-medium text-slate-600 mb-2">
+                                class="block text-sm font-medium text-slate-600 mb-2">
                                 Tanggal Tenggat
                             </label>
 
@@ -1243,7 +1238,6 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
                                         if ($progress > 100) {
                                             $progress = 100;
                                         }
-
                                     }
 
                                 ?>
@@ -1524,131 +1518,208 @@ $total_gagal = mysqli_fetch_assoc($result)['total'] ?? 0;
     </main>
 
 
+    <!-- Popup Konfirmasi Logout -->
+    <div id="logoutModal"
+        class="fixed inset-0 z-[999] hidden items-center justify-center
+            bg-slate-950/70 backdrop-blur-sm px-5">
+
+        <div id="logoutBox"
+            class="w-full max-w-[340px] rounded-2xl bg-[#111a30]
+                border border-slate-700/40 p-5 shadow-2xl
+                opacity-0 scale-95 transition-all duration-200">
+
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center
+                    justify-center rounded-full bg-red-500/10">
+                <i class="fa-solid fa-right-from-bracket
+                      text-xl text-red-500"></i>
+            </div>
+
+            <h3 class="text-center text-sm font-bold text-white">
+                Konfirmasi Logout
+            </h3>
+
+            <p class="mx-auto mt-1.5 max-w-[260px] text-center
+                  text-[10px] leading-relaxed text-slate-400">
+                Apakah Anda yakin ingin keluar dari sistem ini?
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-2.5">
+
+                <button type="button"
+                    id="cancelLogout"
+                    class="rounded-xl border border-slate-700
+                           bg-transparent py-2.5 text-xs font-semibold
+                           text-slate-300 transition hover:bg-slate-800">
+                    Batal
+                </button>
+
+                <button type="button"
+                    id="confirmLogout"
+                    class="rounded-xl bg-red-500 py-2.5 text-xs
+                           font-semibold text-white transition
+                           hover:bg-red-600">
+                    Ya, Keluar
+                </button>
+
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- =========================================================
          JAVASCRIPT
     ========================================================== -->
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | SIDEBAR RESPONSIVE
-        |--------------------------------------------------------------------------
-        */
-
-        const sidebar = document.getElementById('sidebar');
-
-        const sidebarOverlay =
-            document.getElementById('sidebarOverlay');
-
-
-        function bukaSidebar() {
-
-            sidebar.classList.add('active');
-
-            sidebarOverlay.classList.add('active');
-
-        }
-
-
-        function tutupSidebar() {
-
-            sidebar.classList.remove('active');
-
-            sidebarOverlay.classList.remove('active');
-
-        }
-
-
-        // Menutup sidebar setelah menu diklik pada perangkat mobile
-
-        document
-            .querySelectorAll('#sidebar a')
-            .forEach(function(link) {
-
-                link.addEventListener('click', function() {
-
-                    if (window.innerWidth <= 767) {
-
-                        tutupSidebar();
-
-                    }
-
-                });
-
-            });
-
-
-        // Mengatur ulang sidebar ketika ukuran layar berubah
-
-        window.addEventListener('resize', function() {
-
-            if (window.innerWidth >= 768) {
-
-                sidebar.classList.remove('active');
-
-                sidebarOverlay.classList.remove('active');
-
+            function bukaSidebar() {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
             }
 
-        });
+            function tutupSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            }
 
+            if (openSidebar) {
+                openSidebar.addEventListener('click', bukaSidebar);
+            }
 
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', tutupSidebar);
+            }
 
-        /*
-        |--------------------------------------------------------------------------
-        | ANIMASI
-        |--------------------------------------------------------------------------
-        */
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', tutupSidebar);
+            }
 
-        document.addEventListener('DOMContentLoaded', function() {
-
-            const elements =
-                document.querySelectorAll('.fade-in');
-
-            elements.forEach(function(element) {
-
-                element.style.opacity = '1';
-
+            document.querySelectorAll('#sidebar a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 767) {
+                        tutupSidebar();
+                    }
+                });
             });
 
-        });
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                }
+            });
+
+            const logoutButton =
+                document.querySelector('a[href="../../logout.php"]');
+
+            const logoutModal =
+                document.getElementById('logoutModal');
+
+            const logoutBox =
+                document.getElementById('logoutBox');
+
+            const cancelLogout =
+                document.getElementById('cancelLogout');
+
+            const confirmLogout =
+                document.getElementById('confirmLogout');
 
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIRMASI LOGOUT
-        |--------------------------------------------------------------------------
-        */
-
-        const logoutButton =
-            document.querySelector('a[href="../../logout.php"]');
+            if (!logoutButton ||
+                !logoutModal ||
+                !logoutBox ||
+                !cancelLogout ||
+                !confirmLogout) {
+                return;
+            }
 
 
-        if (logoutButton) {
-
+            // Klik tombol logout
             logoutButton.addEventListener('click', function(event) {
 
-                const yakin = confirm(
-                    'Apakah Anda yakin ingin keluar dari sistem?'
-                );
+                event.preventDefault();
+
+                logoutModal.classList.remove('hidden');
+                logoutModal.classList.add('flex');
+
+                setTimeout(() => {
+                    logoutBox.classList.remove(
+                        'opacity-0',
+                        'scale-95'
+                    );
+
+                    logoutBox.classList.add(
+                        'opacity-100',
+                        'scale-100'
+                    );
+                }, 10);
+            });
 
 
-                if (!yakin) {
+            // Tombol Batal
+            cancelLogout.addEventListener('click', function() {
+                tutupLogout();
+            });
 
-                    event.preventDefault();
 
+            // Tombol Ya, Keluar
+            confirmLogout.addEventListener('click', function() {
+                window.location.href = logoutButton.href;
+            });
+
+
+            // Klik area luar popup
+            logoutModal.addEventListener('click', function(event) {
+
+                if (event.target === logoutModal) {
+                    tutupLogout();
                 }
 
             });
 
-        }
 
+            // Tombol ESC
+            document.addEventListener('keydown', function(event) {
+
+                if (
+                    event.key === 'Escape' &&
+                    !logoutModal.classList.contains('hidden')
+                ) {
+                    tutupLogout();
+                }
+
+            });
+
+
+            // Fungsi menutup popup
+            function tutupLogout() {
+
+                logoutBox.classList.remove(
+                    'opacity-100',
+                    'scale-100'
+                );
+
+                logoutBox.classList.add(
+                    'opacity-0',
+                    'scale-95'
+                );
+
+                setTimeout(() => {
+
+                    logoutModal.classList.remove('flex');
+                    logoutModal.classList.add('hidden');
+
+                }, 200);
+            }
+
+        });
     </script>
-
 
 </body>
 

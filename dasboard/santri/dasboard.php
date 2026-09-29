@@ -1,4 +1,3 @@
-
 <?php
 require_once '../../config/auth.php';
 require_once '../../config/koneksi.php';
@@ -65,30 +64,6 @@ $result = mysqli_stmt_get_result($stmt);
 $total_setoran = mysqli_fetch_assoc($result)['total'] ?? 0;
 
 /* =========================================================
-   TOTAL HAFALAN DAN HALAMAN
-========================================================= */
-
-$total_hafalan = $data_santri['total_hafalan'] ?? 0;
-
-/*
-   Total halaman dihitung dari seluruh setoran santri.
-*/
-$query_total_halaman = "
-    SELECT COALESCE(SUM(halaman), 0) AS total_halaman
-    FROM setoran
-    WHERE santri_id = ?
-";
-
-$stmt = mysqli_prepare($koneksi, $query_total_halaman);
-mysqli_stmt_bind_param($stmt, "i", $santri_id);
-mysqli_stmt_execute($stmt);
-
-$result_halaman = mysqli_stmt_get_result($stmt);
-$data_halaman = mysqli_fetch_assoc($result_halaman);
-
-$total_halaman = $data_halaman['total_halaman'] ?? 0;
-
-/* =========================================================
    TARGET HAFALAN
 ========================================================= */
 
@@ -112,6 +87,8 @@ $target_juz = $target['target_juz'] ?? ($data_santri['target_juz'] ?? 0);
 $status_target = $target['status'] ?? 'Belum ada target';
 
 $persentase_target = 0;
+
+$total_hafalan = $data_santri['total_hafalan'] ?? 0;
 
 if ($target_juz > 0) {
     $persentase_target = round(($total_hafalan / $target_juz) * 100);
@@ -254,6 +231,20 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         @media (min-width: 768px) {
             #sidebar {
                 transform: translateX(0) !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+
+            #sidebarOverlay {
+                display: none;
+            }
+
+            #sidebarOverlay.active {
+                display: block;
             }
         }
     </style>
@@ -400,11 +391,9 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                 <a href="../../logout.php"
                     id="logoutButton"
-                    class="text-slate-400 hover:text-red-400 p-2 rounded-lg"
+                    class="text-slate-400 hover:text-red-400 p-2 rounded-lg transition-colors"
                     title="Logout">
-
                     <i class="fa-solid fa-right-from-bracket text-lg"></i>
-
                 </a>
 
             </div>
@@ -527,7 +516,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
             <!-- STATISTIK -->
             <div class="grid grid-cols-1 sm:grid-cols-2
-                        lg:grid-cols-4 gap-4 sm:gap-5">
+                        lg:grid-cols-3 gap-4 sm:gap-5">
 
                 <!-- TOTAL HAFALAN -->
                 <div class="bg-white p-4 sm:p-5 rounded-2xl
@@ -554,32 +543,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                 flex-shrink-0">
 
                         <i class="fa-solid fa-book-quran"></i>
-
-                    </div>
-
-                </div>
-
-                <!-- TOTAL HALAMAN -->
-                <div class="bg-white p-4 sm:p-5 rounded-2xl
-                            border border-slate-200/80 shadow-sm
-                            flex items-center justify-between gap-3">
-
-                    <div>
-                        <p class="text-xs text-slate-500 font-medium">
-                            Total Halaman
-                        </p>
-
-                        <h3 class="text-2xl font-bold text-slate-800 mt-1">
-                            <?php echo $total_halaman; ?>
-                        </h3>
-                    </div>
-
-                    <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl
-                                bg-teal-50 text-teal-600
-                                flex items-center justify-center text-xl
-                                flex-shrink-0">
-
-                        <i class="fa-solid fa-file-lines"></i>
 
                     </div>
 
@@ -1259,92 +1222,179 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
     </main>
 
+    <!-- Popup Konfirmasi Logout -->
+    <div id="logoutModal"
+        class="fixed inset-0 z-[999] hidden items-center justify-center
+            bg-slate-950/70 backdrop-blur-sm px-5">
+
+        <div id="logoutBox"
+            class="w-full max-w-[340px] rounded-2xl bg-[#111a30]
+                border border-slate-700/40 p-5 shadow-2xl
+                opacity-0 scale-95 transition-all duration-200">
+
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center
+                    justify-center rounded-full bg-red-500/10">
+                <i class="fa-solid fa-right-from-bracket
+                      text-xl text-red-500"></i>
+            </div>
+
+            <h3 class="text-center text-sm font-bold text-white">
+                Konfirmasi Logout
+            </h3>
+
+            <p class="mx-auto mt-1.5 max-w-[260px] text-center
+                  text-[10px] leading-relaxed text-slate-400">
+                Apakah Anda yakin ingin keluar dari sistem ini?
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-2.5">
+                <button type="button"
+                    id="cancelLogout"
+                    class="rounded-xl border border-slate-700
+                           bg-transparent py-2.5 text-xs font-semibold
+                           text-slate-300 transition hover:bg-slate-800">
+                    Batal
+                </button>
+
+                <button type="button"
+                    id="confirmLogout"
+                    class="rounded-xl bg-red-500 py-2.5 text-xs
+                           font-semibold text-white transition
+                           hover:bg-red-600">
+                    Ya, Keluar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- JAVASCRIPT -->
     <script>
+        function autoIsiJuz(selectElement) {
+            var selectedOption = selectElement.options[selectElement.selectedIndex];
+            var juz = selectedOption.getAttribute('data-juz');
+            var inputJuz = document.getElementById('juz');
 
-        // ==========================================
-        // SIDEBAR RESPONSIVE
-        // ==========================================
-
-        const sidebar = document.getElementById('sidebar');
-        const openSidebar = document.getElementById('openSidebar');
-        const closeSidebar = document.getElementById('closeSidebar');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (juz) {
+                inputJuz.value = juz;
+            } else {
+                inputJuz.value = '';
+            }
+        }
 
         function bukaSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
 
-            sidebar.classList.remove('-translate-x-full');
-            sidebarOverlay.classList.remove('hidden');
-
+            sidebar.style.transform = 'translateX(0)';
+            overlay.classList.remove('hidden');
+            overlay.classList.add('active');
         }
 
         function tutupSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
 
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-
+            sidebar.style.transform = 'translateX(-100%)';
+            overlay.classList.remove('active');
         }
 
-        if (openSidebar) {
 
-            openSidebar.addEventListener('click', bukaSidebar);
+        // Konfirmasi Logout
+        document.addEventListener('DOMContentLoaded', function() {
 
-        }
+            const logoutButton =
+                document.getElementById('logoutButton');
 
-        if (closeSidebar) {
+            const logoutModal =
+                document.getElementById('logoutModal');
 
-            closeSidebar.addEventListener('click', tutupSidebar);
+            const logoutBox =
+                document.getElementById('logoutBox');
 
-        }
+            const cancelLogout =
+                document.getElementById('cancelLogout');
 
-        if (sidebarOverlay) {
+            const confirmLogout =
+                document.getElementById('confirmLogout');
 
-            sidebarOverlay.addEventListener('click', tutupSidebar);
 
-        }
+            if (!logoutButton || !logoutModal || !logoutBox ||
+                !cancelLogout || !confirmLogout) {
+                return;
+            }
 
-        // Menutup sidebar setelah memilih menu di HP
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-        const menuSidebar = sidebar.querySelectorAll('a');
+            if (openSidebar) {
+                openSidebar.addEventListener('click', bukaSidebar);
+            }
 
-        menuSidebar.forEach(function (menu) {
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', tutupSidebar);
+            }
 
-            menu.addEventListener('click', function () {
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', tutupSidebar);
+            }
 
-                if (window.innerWidth < 768) {
 
-                    tutupSidebar();
+            // Buka popup
+            logoutButton.addEventListener('click', function(event) {
+                event.preventDefault();
 
-                }
+                logoutModal.classList.remove('hidden');
+                logoutModal.classList.add('flex');
 
+                requestAnimationFrame(function() {
+                    logoutBox.classList.remove('opacity-0', 'scale-95');
+                    logoutBox.classList.add('opacity-100', 'scale-100');
+                });
             });
+
+
+            // Tombol Batal
+            cancelLogout.addEventListener('click', tutupLogout);
+
+
+            // Tombol Ya, Keluar
+            confirmLogout.addEventListener('click', function() {
+                window.location.href = logoutButton.href;
+            });
+
+
+            // Klik area luar popup
+            logoutModal.addEventListener('click', function(event) {
+                if (event.target === logoutModal) {
+                    tutupLogout();
+                }
+            });
+
+
+            // Tombol Escape
+            document.addEventListener('keydown', function(event) {
+                if (
+                    event.key === 'Escape' &&
+                    !logoutModal.classList.contains('hidden')
+                ) {
+                    tutupLogout();
+                }
+            });
+
+
+            function tutupLogout() {
+                logoutBox.classList.remove('opacity-100', 'scale-100');
+                logoutBox.classList.add('opacity-0', 'scale-95');
+
+                setTimeout(function() {
+                    logoutModal.classList.remove('flex');
+                    logoutModal.classList.add('hidden');
+                }, 200);
+            }
 
         });
-
-        // ==========================================
-        // KONFIRMASI LOGOUT
-        // ==========================================
-
-        const logoutButton = document.getElementById('logoutButton');
-
-        if (logoutButton) {
-
-            logoutButton.addEventListener('click', function (event) {
-
-                const yakin = confirm(
-                    'Apakah Anda yakin ingin keluar dari sistem?'
-                );
-
-                if (!yakin) {
-
-                    event.preventDefault();
-
-                }
-
-            });
-
-        }
-
     </script>
 
 </body>

@@ -65,26 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
     $ayat_mulai = (int) ($_POST['ayat_mulai'] ?? 0);
     $ayat_selesai = (int) ($_POST['ayat_selesai'] ?? 0);
     $juz = (int) ($_POST['juz'] ?? 0);
-    $halaman = (int) ($_POST['halaman'] ?? 0);
     $catatan = trim($_POST['catatan'] ?? '');
 
     $jenis_valid = ['ziyadah', 'murajaah'];
 
     if (!in_array($jenis, $jenis_valid, true)) {
         $pesan_error = 'Jenis setoran tidak valid.';
-
     } elseif ($surah_id <= 0 || $ayat_mulai <= 0 || $ayat_selesai <= 0) {
         $pesan_error = 'Surah dan ayat wajib diisi dengan benar.';
-
     } elseif ($ayat_selesai < $ayat_mulai) {
         $pesan_error = 'Ayat selesai tidak boleh lebih kecil dari ayat mulai.';
-
     } elseif ($juz < 1 || $juz > 30) {
         $pesan_error = 'Juz harus berada antara 1 sampai 30.';
-
-    } elseif ($halaman < 1) {
-        $pesan_error = 'Halaman harus diisi minimal 1.';
-
     } else {
 
         // Mengecek jumlah ayat sesuai surah
@@ -110,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
         if (!$data_cek_surah) {
 
             $pesan_error = 'Surah yang dipilih tidak ditemukan.';
-
         } elseif (
             $ayat_mulai > (int) $data_cek_surah['jumlah_ayat'] ||
             $ayat_selesai > (int) $data_cek_surah['jumlah_ayat']
@@ -121,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
                 . ', yaitu '
                 . $data_cek_surah['jumlah_ayat']
                 . ' ayat.';
-
         } else {
 
             $query_insert = "
@@ -133,10 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
                     ayat_mulai,
                     ayat_selesai,
                     juz,
-                    halaman,
                     catatan
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ";
 
             $stmt_insert = mysqli_prepare($koneksi, $query_insert);
@@ -145,33 +134,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_setoran'])) {
 
                 mysqli_stmt_bind_param(
                     $stmt_insert,
-                    "isiiiiis",
+                    "isiiiis",
                     $santri_id,
                     $jenis,
                     $surah_id,
                     $ayat_mulai,
                     $ayat_selesai,
                     $juz,
-                    $halaman,
                     $catatan
                 );
 
                 if (mysqli_stmt_execute($stmt_insert)) {
 
                     $pesan_sukses = 'Setoran berhasil disimpan dan menunggu penilaian ustadz.';
-
                 } else {
 
                     $pesan_error = 'Setoran gagal disimpan. Silakan coba lagi.';
-
                 }
 
                 mysqli_stmt_close($stmt_insert);
-
             } else {
 
                 $pesan_error = 'Terjadi kesalahan pada proses penyimpanan.';
-
             }
         }
 
@@ -204,14 +188,83 @@ if (!$result_surah) {
 
 // Map Pemetaan Nomor Surah ke Awal Juz (1-114)
 $juz_map = [
-    1=>1, 2=>1, 3=>3, 4=>4, 5=>6, 6=>7, 7=>8, 8=>9, 9=>10, 10=>11,
-    11=>11, 12=>12, 13=>13, 14=>13, 15=>14, 16=>14, 17=>15, 18=>15, 19=>16, 20=>16,
-    21=>17, 22=>17, 23=>18, 24=>18, 25=>18, 26=>19, 27=>19, 28=>19, 29=>20, 30=>20,
-    31=>21, 32=>21, 33=>21, 34=>22, 35=>22, 36=>22, 37=>23, 38=>23, 39=>23, 40=>24,
-    41=>24, 42=>25, 43=>25, 44=>25, 45=>25, 46=>26, 47=>26, 48=>26, 49=>26, 50=>26,
-    51=>26, 52=>27, 53=>27, 54=>27, 55=>27, 56=>27, 57=>27, 58=>28, 59=>28, 60=>28,
-    61=>28, 62=>28, 63=>28, 64=>28, 65=>28, 66=>28, 67=>29, 68=>29, 69=>29, 70=>29,
-    71=>29, 72=>29, 73=>29, 74=>29, 75=>29, 76=>29, 77=>29
+    1 => 1,
+    2 => 1,
+    3 => 3,
+    4 => 4,
+    5 => 6,
+    6 => 7,
+    7 => 8,
+    8 => 9,
+    9 => 10,
+    10 => 11,
+    11 => 11,
+    12 => 12,
+    13 => 13,
+    14 => 13,
+    15 => 14,
+    16 => 14,
+    17 => 15,
+    18 => 15,
+    19 => 16,
+    20 => 16,
+    21 => 17,
+    22 => 17,
+    23 => 18,
+    24 => 18,
+    25 => 18,
+    26 => 19,
+    27 => 19,
+    28 => 19,
+    29 => 20,
+    30 => 20,
+    31 => 21,
+    32 => 21,
+    33 => 21,
+    34 => 22,
+    35 => 22,
+    36 => 22,
+    37 => 23,
+    38 => 23,
+    39 => 23,
+    40 => 24,
+    41 => 24,
+    42 => 25,
+    43 => 25,
+    44 => 25,
+    45 => 25,
+    46 => 26,
+    47 => 26,
+    48 => 26,
+    49 => 26,
+    50 => 26,
+    51 => 26,
+    52 => 27,
+    53 => 27,
+    54 => 27,
+    55 => 27,
+    56 => 27,
+    57 => 27,
+    58 => 28,
+    59 => 28,
+    60 => 28,
+    61 => 28,
+    62 => 28,
+    63 => 28,
+    64 => 28,
+    65 => 28,
+    66 => 28,
+    67 => 29,
+    68 => 29,
+    69 => 29,
+    70 => 29,
+    71 => 29,
+    72 => 29,
+    73 => 29,
+    74 => 29,
+    75 => 29,
+    76 => 29,
+    77 => 29
 ];
 
 /*
@@ -267,9 +320,9 @@ $result_murajaah = mysqli_stmt_get_result($stmt);
 $total_murajaah = mysqli_fetch_assoc($result_murajaah)['total'] ?? 0;
 
 
-// Total hafalan dan halaman
+// Total hafalan
 $total_hafalan = $data_santri['total_hafalan'] ?? 0;
-$total_halaman = $data_santri['total_hafalan_halaman'] ?? 0;
+
 
 
 /*
@@ -366,6 +419,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 opacity: 0;
                 transform: translateY(5px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -379,13 +433,14 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                 top: 0;
                 left: 0;
                 height: 100vh;
+                width: 16rem;
                 z-index: 50;
                 transform: translateX(-100%);
                 transition: transform 0.3s ease-in-out;
             }
 
-            #sidebar.active {
-                transform: translateX(0);
+            #sidebarOverlay {
+                display: none;
             }
 
             #sidebarOverlay.active {
@@ -415,13 +470,18 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 <body class="bg-slate-100 min-h-screen text-slate-800 flex">
 
     <!-- Overlay Sidebar Mobile -->
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="tutupSidebar()"></div>
+    <div id="sidebarOverlay"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden">
+    </div>
 
     <!-- Sidebar -->
     <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen sticky top-0 z-30">
         <!-- Tombol Tutup Sidebar Mobile -->
         <div class="flex justify-end p-3 md:hidden">
-            <button type="button" onclick="tutupSidebar()" class="text-slate-400 hover:text-white text-xl" aria-label="Tutup menu">
+            <button type="button"
+                id="closeSidebar"
+                class="text-slate-400 hover:text-white text-xl"
+                aria-label="Tutup menu">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -477,7 +537,10 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                     </div>
                 </div>
 
-                <a href="../../logout.php" class="text-slate-400 hover:text-red-400 p-2 rounded-lg transition-colors" title="Logout">
+                <a href="../../logout.php"
+                    id="logoutButton"
+                    class="text-slate-400 hover:text-red-400 p-2 rounded-lg transition-colors"
+                    title="Logout">
                     <i class="fa-solid fa-right-from-bracket text-lg"></i>
                 </a>
             </div>
@@ -489,7 +552,10 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         <!-- Navbar Header -->
         <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
             <div class="flex items-center gap-3">
-                <button type="button" onclick="bukaSidebar()" class="md:hidden text-slate-600 hover:text-emerald-600 text-xl" aria-label="Buka menu">
+                <button type="button"
+                    id="openSidebar"
+                    class="md:hidden text-slate-600 hover:text-emerald-600 text-xl"
+                    aria-label="Buka menu">
                     <i class="fa-solid fa-bars"></i>
                 </button>
                 <div>
@@ -563,7 +629,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                             <label for="surah_id" class="block text-xs font-semibold text-slate-600 mb-2">Surah</label>
                             <select id="surah_id" name="surah_id" onchange="autoIsiJuz(this)" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <option value="">Pilih surah</option>
-                                <?php while ($surah = mysqli_fetch_assoc($result_surah)): 
+                                <?php while ($surah = mysqli_fetch_assoc($result_surah)):
                                     $no_surah = (int) $surah['nomor_surah'];
                                     $juz_estimasi = isset($juz_map[$no_surah]) ? $juz_map[$no_surah] : 30;
                                 ?>
@@ -587,11 +653,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                         <div>
                             <label for="juz" class="block text-xs font-semibold text-slate-600 mb-2">Juz</label>
                             <input type="number" id="juz" name="juz" min="1" max="30" required placeholder="Pilih surah..." class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        </div>
-
-                        <div>
-                            <label for="halaman" class="block text-xs font-semibold text-slate-600 mb-2">Halaman</label>
-                            <input type="number" id="halaman" name="halaman" min="1" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
 
                         <div class="md:col-span-2">
@@ -671,7 +732,6 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                 <th class="p-4 font-semibold">Jenis</th>
                                 <th class="p-4 font-semibold">Surah & Ayat</th>
                                 <th class="p-4 font-semibold">Juz</th>
-                                <th class="p-4 font-semibold">Halaman</th>
                                 <th class="p-4 font-semibold">Nilai</th>
                                 <th class="p-4 font-semibold">Predikat</th>
                                 <th class="p-4 font-semibold">Status</th>
@@ -697,16 +757,13 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                             <?php endif; ?>
                                         </td>
                                         <td class="p-4 font-medium text-slate-800 whitespace-nowrap">
-                                            <?php echo htmlspecialchars($row['nama_surah'] ?? 'Surah ID: ' . $row['surah_id']); ?> 
+                                            <?php echo htmlspecialchars($row['nama_surah'] ?? 'Surah ID: ' . $row['surah_id']); ?>
                                             <span class="text-xs text-slate-500 font-normal">
                                                 (Ayat <?php echo $row['ayat_mulai']; ?> - <?php echo $row['ayat_selesai']; ?>)
                                             </span>
                                         </td>
                                         <td class="p-4 text-slate-600 font-medium whitespace-nowrap">
                                             Juz <?php echo $row['juz']; ?>
-                                        </td>
-                                        <td class="p-4 text-slate-600 whitespace-nowrap">
-                                            Hal. <?php echo $row['halaman']; ?>
                                         </td>
                                         <td class="p-4 font-bold text-slate-800 whitespace-nowrap">
                                             <?php echo $row['nilai_angka'] !== null ? $row['nilai_angka'] : '-'; ?>
@@ -737,7 +794,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" class="p-6 text-center text-slate-400 text-sm">
+                                    <td colspan="8" class="p-6 text-center text-slate-400 text-sm">
                                         Belum ada riwayat setoran hafalan.
                                     </td>
                                 </tr>
@@ -749,13 +806,59 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
         </div>
     </main>
 
+    <!-- Popup Konfirmasi Logout -->
+    <div id="logoutModal"
+        class="fixed inset-0 z-[999] hidden items-center justify-center
+            bg-slate-950/70 backdrop-blur-sm px-5">
+
+        <div id="logoutBox"
+            class="w-full max-w-[340px] rounded-2xl bg-[#111a30]
+                border border-slate-700/40 p-5 shadow-2xl
+                opacity-0 scale-95 transition-all duration-200">
+
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center
+                    justify-center rounded-full bg-red-500/10">
+                <i class="fa-solid fa-right-from-bracket
+                      text-xl text-red-500"></i>
+            </div>
+
+            <h3 class="text-center text-sm font-bold text-white">
+                Konfirmasi Logout
+            </h3>
+
+            <p class="mx-auto mt-1.5 max-w-[260px] text-center
+                  text-[10px] leading-relaxed text-slate-400">
+                Apakah Anda yakin ingin keluar dari sistem ini?
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-2.5">
+                <button type="button"
+                    id="cancelLogout"
+                    class="rounded-xl border border-slate-700
+                           bg-transparent py-2.5 text-xs font-semibold
+                           text-slate-300 transition hover:bg-slate-800">
+                    Batal
+                </button>
+
+                <button type="button"
+                    id="confirmLogout"
+                    class="rounded-xl bg-red-500 py-2.5 text-xs
+                           font-semibold text-white transition
+                           hover:bg-red-600">
+                    Ya, Keluar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- JavaScript Auto-Fill Juz & Sidebar Toggle -->
     <script>
         function autoIsiJuz(selectElement) {
             var selectedOption = selectElement.options[selectElement.selectedIndex];
             var juz = selectedOption.getAttribute('data-juz');
             var inputJuz = document.getElementById('juz');
-            
+
             if (juz) {
                 inputJuz.value = juz;
             } else {
@@ -763,15 +866,130 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
             }
         }
 
-        function bukaSidebar() {
-            document.getElementById('sidebar').classList.add('active');
-            document.getElementById('sidebarOverlay').classList.add('active');
-        }
 
-        function tutupSidebar() {
-            document.getElementById('sidebar').classList.remove('active');
-            document.getElementById('sidebarOverlay').classList.remove('active');
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+
+            /* =========================
+               SIDEBAR MOBILE
+            ========================= */
+
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+
+            function bukaSidebar() {
+                sidebar.style.transform = 'translateX(0)';
+                sidebarOverlay.classList.remove('hidden');
+                sidebarOverlay.classList.add('active');
+            }
+
+            function tutupSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+
+                sidebar.style.transform = 'translateX(-100%)';
+                overlay.classList.remove('active');
+            }
+
+            if (openSidebar) {
+                openSidebar.addEventListener('click', bukaSidebar);
+            }
+
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', tutupSidebar);
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', tutupSidebar);
+            }
+
+
+            /* =========================
+               LOGOUT
+            ========================= */
+
+            const logoutButton = document.getElementById('logoutButton');
+            const logoutModal = document.getElementById('logoutModal');
+            const logoutBox = document.getElementById('logoutBox');
+            const cancelLogout = document.getElementById('cancelLogout');
+            const confirmLogout = document.getElementById('confirmLogout');
+
+            if (logoutButton && logoutModal && logoutBox &&
+                cancelLogout && confirmLogout) {
+
+                logoutButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+
+                    logoutModal.classList.remove('hidden');
+                    logoutModal.classList.add('flex');
+
+                    requestAnimationFrame(function() {
+                        logoutBox.classList.remove('opacity-0', 'scale-95');
+                        logoutBox.classList.add('opacity-100', 'scale-100');
+                    });
+                });
+
+                cancelLogout.addEventListener('click', tutupLogout);
+
+                confirmLogout.addEventListener('click', function() {
+                    window.location.href = logoutButton.href;
+                });
+
+                logoutModal.addEventListener('click', function(event) {
+                    if (event.target === logoutModal) {
+                        tutupLogout();
+                    }
+                });
+
+                document.addEventListener('keydown', function(event) {
+                    if (
+                        event.key === 'Escape' &&
+                        !logoutModal.classList.contains('hidden')
+                    ) {
+                        tutupLogout();
+                    }
+                });
+
+                function tutupLogout() {
+                    logoutBox.classList.remove('opacity-100', 'scale-100');
+                    logoutBox.classList.add('opacity-0', 'scale-95');
+
+                    setTimeout(function() {
+                        logoutModal.classList.remove('flex');
+                        logoutModal.classList.add('hidden');
+                    }, 200);
+                }
+            }
+
+
+            /* =========================
+               TUTUP SIDEBAR SAAT PILIH MENU
+            ========================= */
+
+            document.querySelectorAll('#sidebar a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 767) {
+                        tutupSidebar();
+                    }
+                });
+            });
+
+
+            /* =========================
+               RESET SAAT LAYAR BESAR
+            ========================= */
+
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    sidebarOverlay.classList.add('hidden');
+                }
+            });
+
+        });
     </script>
 </body>
+
 </html>
