@@ -184,7 +184,7 @@ if (!$result_setoran) {
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                        <?php echo strtoupper(substr($nama_user ?? 'U', 0, 1)); ?>
+                        <?php echo strtoupper(substr($nama_user ?: 'U', 0, 1)); ?>
                     </div>
                     <div class="truncate w-28">
                         <p class="text-xs font-semibold text-white truncate"><?php echo htmlspecialchars($nama_user ?? 'Ustadz'); ?></p>
@@ -331,15 +331,15 @@ if (!$result_setoran) {
                                 <?php while ($row = mysqli_fetch_assoc($result_setoran)): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors">
                                         <td class="py-3 px-4 sm:px-5 font-medium text-slate-800 whitespace-nowrap">
-                                            <?php echo htmlspecialchars($row['nama_santri']); ?>
-                                            <span class="block text-[10px] text-slate-400">NIS: <?php echo htmlspecialchars($row['nis']); ?></span>
+                                            <?php echo htmlspecialchars($row['nama_santri'] ?? ''); ?>
+                                            <span class="block text-[10px] text-slate-400">NIS: <?php echo htmlspecialchars($row['nis'] ?? ''); ?></span>
                                         </td>
-                                        <td class="py-3 px-4 sm:px-5 font-medium whitespace-nowrap"><?php echo htmlspecialchars($row['nama_surah']); ?></td>
+                                        <td class="py-3 px-4 sm:px-5 font-medium whitespace-nowrap"><?php echo htmlspecialchars($row['nama_surah'] ?? ''); ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap"><?php echo $row['ayat_mulai']; ?> - <?php echo $row['ayat_selesai']; ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap">Juz <?php echo $row['juz']; ?></td>
                                         <td class="py-3 px-4 sm:px-5 whitespace-nowrap">
                                             <?php
-                                            $kelancaran = $row['kelancaran'];
+                                            $kelancaran = $row['kelancaran'] ?? '';
                                             $badge = 'bg-slate-100 text-slate-700';
 
                                             if ($kelancaran == 'Sangat Lancar' || $kelancaran == 'Lancar') {
@@ -355,7 +355,7 @@ if (!$result_setoran) {
                                             </span>
                                         </td>
                                         <td class="py-3 px-4 sm:px-5 text-[11px] text-slate-400 whitespace-nowrap">
-                                            <?php echo date('d M Y, H:i', strtotime($row['tanggal_setor'])); ?>
+                                            <?php echo !empty($row['tanggal_setor']) ? date('d M Y, H:i', strtotime($row['tanggal_setor'])) : '-'; ?>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
