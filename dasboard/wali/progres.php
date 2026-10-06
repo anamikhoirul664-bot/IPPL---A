@@ -26,10 +26,12 @@ if ($santri_id > 0) {
     $r_total = mysqli_fetch_assoc($q_total);
     $total_setoran = $r_total['total'] ?? 0;
 
-    // Hitung setoran yang berstatus Lulus / Selesai
-    $q_lulus = mysqli_query($koneksi, "SELECT COUNT(DISTINCT surah) as total_surah FROM setoran WHERE santri_id = '$santri_id' AND status = 'Lulus'");
-    $r_lulus = mysqli_fetch_assoc($q_lulus);
-    $total_lulus = $r_lulus['total_surah'] ?? 0;
+    // Hitung jumlah surah yang sudah disetor
+    $q_lulus = mysqli_query($koneksi, "
+        SELECT COUNT(DISTINCT surah_id) as total_surah
+        FROM setoran
+        WHERE santri_id = '$santri_id'
+    ");
 }
 
 // Target Juz 30 terdiri dari 37 Surah
@@ -40,6 +42,7 @@ if ($persentase > 100) $persentase = 100;
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,23 +50,43 @@ if ($persentase > 100) $persentase = 100;
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style> 
-        body { font-family: 'Poppins', sans-serif; } 
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
         /* Progress Bar Animation */
         @keyframes fillProgress {
-            from { width: 0%; }
+            from {
+                width: 0%;
+            }
         }
+
         .animate-progress {
             animation: fillProgress 1.5s ease-out forwards;
         }
     </style>
 </head>
+
 <body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
 
     <!-- Overlay for Mobile Sidebar -->
@@ -117,7 +140,7 @@ if ($persentase > 100) $persentase = 100;
 
     <!-- Main Wrapper -->
     <div class="flex-1 flex flex-col h-screen overflow-hidden">
-        
+
         <!-- Top Navbar -->
         <header class="bg-white border-b border-slate-100 shadow-sm px-6 py-4 flex justify-between items-center z-10 flex-shrink-0">
             <div class="flex items-center gap-4">
@@ -144,7 +167,7 @@ if ($persentase > 100) $persentase = 100;
 
         <!-- Main Content (Scrollable) -->
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 sm:p-8">
-            
+
             <!-- Mobile Header Content -->
             <div class="mb-6 sm:mb-8">
                 <h1 class="text-2xl font-bold text-slate-800 block sm:hidden mb-1">Progres Hafalan</h1>
@@ -172,7 +195,7 @@ if ($persentase > 100) $persentase = 100;
                             <span class="text-emerald-700 font-bold text-lg">%</span>
                         </div>
                     </div>
-                    
+
                     <!-- Progress Bar -->
                     <div class="w-full bg-slate-100 rounded-full h-4 sm:h-5 overflow-hidden mb-6 border border-slate-200/60 shadow-inner">
                         <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full relative animate-progress shadow-[0_0_10px_rgba(16,185,129,0.4)]" style="width: <?php echo $persentase; ?>%;">
@@ -190,7 +213,7 @@ if ($persentase > 100) $persentase = 100;
                             </div>
                             <span class="text-xl font-bold text-slate-800"><?php echo $total_setoran; ?> <span class="text-sm font-medium text-slate-500">Kali</span></span>
                         </div>
-                        
+
                         <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100/50 hover:bg-emerald-100/80 transition-colors">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fa-solid fa-check-double text-emerald-500"></i>
@@ -198,7 +221,7 @@ if ($persentase > 100) $persentase = 100;
                             </div>
                             <span class="text-xl font-bold text-emerald-800"><?php echo $total_lulus; ?> <span class="text-sm font-medium text-emerald-600/70">Surah</span></span>
                         </div>
-                        
+
                         <div class="p-4 bg-amber-50 rounded-xl border border-amber-100/50 hover:bg-amber-100/80 transition-colors">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fa-regular fa-hourglass-half text-amber-500"></i>
@@ -206,7 +229,7 @@ if ($persentase > 100) $persentase = 100;
                             </div>
                             <span class="text-xl font-bold text-amber-800"><?php echo max(0, $target_surah - $total_lulus); ?> <span class="text-sm font-medium text-amber-600/70">Surah</span></span>
                         </div>
-                        
+
                         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100/50 hover:bg-blue-100/80 transition-colors">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fa-solid fa-book-quran text-blue-500"></i>
@@ -250,18 +273,22 @@ if ($persentase > 100) $persentase = 100;
                             <?php
                             // Ambil daftar setoran santri dari database
                             $q_progres = mysqli_query($koneksi, "
-                                SELECT surah, MAX(tanggal) as tgl_terakhir, status 
-                                FROM setoran 
-                                WHERE santri_id = '$santri_id' 
-                                GROUP BY surah 
-                                ORDER BY id DESC
+                                SELECT 
+                                    s.nama_surah AS surah,
+                                    MAX(st.tanggal_setor) AS tgl_terakhir,
+                                    MAX(st.nilai_angka) AS nilai_angka
+                                FROM setoran st
+                                JOIN surah s ON st.surah_id = s.id
+                                WHERE st.santri_id = '$santri_id'
+                                GROUP BY st.surah_id, s.nama_surah
+                                ORDER BY tgl_terakhir DESC
                             ");
 
                             if ($q_progres && mysqli_num_rows($q_progres) > 0) {
                                 $no = 1;
                                 while ($row = mysqli_fetch_assoc($q_progres)) {
                                     $is_lulus = strtolower($row['status']) == 'lulus';
-                                    ?>
+                            ?>
                                     <tr class="hover:bg-slate-50/70 transition-colors duration-200">
                                         <td class="p-4 pl-6 font-medium text-slate-400"><?php echo str_pad($no++, 2, '0', STR_PAD_LEFT); ?></td>
                                         <td class="p-4 font-bold text-slate-800 text-base"><?php echo htmlspecialchars($row['surah']); ?></td>
@@ -280,11 +307,11 @@ if ($persentase > 100) $persentase = 100;
                                             <?php endif; ?>
                                         </td>
                                         <td class="p-4 pr-6 text-xs font-medium text-slate-500">
-                                            <i class="fa-regular fa-calendar-check mr-1.5 text-slate-400"></i> 
+                                            <i class="fa-regular fa-calendar-check mr-1.5 text-slate-400"></i>
                                             <?php echo date('d M Y', strtotime($row['tgl_terakhir'])); ?>
                                         </td>
                                     </tr>
-                                    <?php
+                                <?php
                                 }
                             } else {
                                 ?>
@@ -299,7 +326,7 @@ if ($persentase > 100) $persentase = 100;
                                         </div>
                                     </td>
                                 </tr>
-                                <?php
+                            <?php
                             }
                             ?>
                         </tbody>
@@ -320,4 +347,5 @@ if ($persentase > 100) $persentase = 100;
         }
     </script>
 </body>
+
 </html>

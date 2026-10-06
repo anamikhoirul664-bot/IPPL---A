@@ -158,14 +158,18 @@ $santri_id = $santri['id'] ?? 0;
                             <?php
                             // Ambil data nilai dari tabel setoran / penilaian
                             $q_nilai = mysqli_query($koneksi, "
-                                SELECT * FROM setoran 
-                                WHERE santri_id = '$santri_id' 
-                                ORDER BY tanggal DESC, id DESC
+                                SELECT 
+                                    st.*,
+                                    s.nama_surah
+                                FROM setoran st
+                                JOIN surah s ON st.surah_id = s.id
+                                WHERE st.santri_id = '$santri_id'
+                                ORDER BY st.tanggal_setor DESC, st.id DESC
                             ");
 
                             if ($q_nilai && mysqli_num_rows($q_nilai) > 0) {
                                 while ($row = mysqli_fetch_assoc($q_nilai)) {
-                                    $nilai_angka = $row['nilai'] ?? 0;
+                                    $nilai_angka = $row['nilai_angka'] ?? 0;
                                     
                                     // Predikat nilai
                                     if ($nilai_angka >= 85) {
@@ -182,15 +186,15 @@ $santri_id = $santri['id'] ?? 0;
                                     <tr class="hover:bg-slate-50/70 transition-colors duration-200 group">
                                         <td class="p-4 pl-6 text-xs font-medium text-slate-500 whitespace-nowrap">
                                             <i class="fa-regular fa-calendar text-slate-400 mr-1 group-hover:text-emerald-500 transition-colors"></i> 
-                                            <?php echo date('d M Y', strtotime($row['tanggal'])); ?>
+                                            <?php echo date('d M Y', strtotime($row['tanggal_setor'])); ?>
                                         </td>
                                         <td class="p-4">
-                                            <span class="font-bold text-slate-800 text-base"><?php echo htmlspecialchars($row['surah']); ?></span>
-                                            <span class="block text-xs font-medium text-slate-400 mt-0.5">Ayat <?php echo htmlspecialchars($row['ayat'] ?? '-'); ?></span>
+                                            <span class="font-bold text-slate-800 text-base"><?php echo htmlspecialchars($row['nama_surah']); ?></span>
+                                            <span class="block text-xs font-medium text-slate-400 mt-0.5">Ayat <?php echo htmlspecialchars($row['ayat_mulai'] ?? '-') . ' - ' . htmlspecialchars($row['ayat_selesai'] ?? '-'); ?></span>
                                         </td>
-                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['nilai_makhraj'] ?? 'A'); ?></td>
-                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['nilai_tajwid'] ?? 'A'); ?></td>
-                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['nilai_kelancaran'] ?? 'A'); ?></td>
+                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['makhroj'] ?? 'A'); ?></td>
+                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['tajwid'] ?? 'A'); ?></td>
+                                        <td class="p-4 text-center font-bold text-slate-700"><?php echo htmlspecialchars($row['kelancaran'] ?? 'A'); ?></td>
                                         <td class="p-4">
                                             <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border <?php echo $badge; ?>">
                                                 <span class="text-sm"><?php echo $nilai_angka; ?></span>

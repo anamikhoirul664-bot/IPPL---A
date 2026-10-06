@@ -27,6 +27,7 @@ if ($santri) {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,15 +35,32 @@ if ($santri) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style> 
-        body { font-family: 'Poppins', sans-serif; } 
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
+
 <body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
 
     <!-- Overlay for Mobile Sidebar -->
@@ -96,7 +114,7 @@ if ($santri) {
 
     <!-- Main Wrapper -->
     <div class="flex-1 flex flex-col h-screen overflow-hidden">
-        
+
         <!-- Top Navbar -->
         <header class="bg-white border-b border-slate-100 shadow-sm px-6 py-4 flex justify-between items-center z-10 flex-shrink-0">
             <div class="flex items-center gap-4">
@@ -123,7 +141,7 @@ if ($santri) {
 
         <!-- Main Content (Scrollable) -->
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 sm:p-8">
-            
+
             <!-- Mobile Header Content -->
             <div class="mb-6 sm:mb-8">
                 <h1 class="text-2xl font-bold text-slate-800 block sm:hidden mb-1">Riwayat Setoran</h1>
@@ -134,7 +152,7 @@ if ($santri) {
 
             <!-- Content Area -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 sm:p-8">
-                
+
                 <div class="flex items-center gap-3 mb-8">
                     <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                         <i class="fa-solid fa-timeline"></i>
@@ -150,39 +168,50 @@ if ($santri) {
                     <?php
                     // Query mengambil riwayat setoran secara kronologis
                     $q_riwayat = mysqli_query($koneksi, "
-                        SELECT s.*, u.nama as nama_ustadz 
-                        FROM setoran s
-                        LEFT JOIN users u ON s.ustadz_id = u.id
-                        WHERE s.santri_id = '$santri_id' 
-                        ORDER BY s.tanggal DESC, s.id DESC
+                        SELECT 
+                            st.*,
+                            s.nama_surah,
+                            u.nama AS nama_ustadz
+                        FROM setoran st
+                        LEFT JOIN surah s ON st.surah_id = s.id
+                        LEFT JOIN users u ON st.ustadz_id = u.id
+                        WHERE st.santri_id = '$santri_id'
+                        ORDER BY st.tanggal_setor DESC, st.id DESC
                     ");
 
                     if ($q_riwayat && mysqli_num_rows($q_riwayat) > 0) {
                         while ($row = mysqli_fetch_assoc($q_riwayat)) {
-                            
+
                             // [PERBAIKAN ERROR]: Deklarasi variabel dengan aman mengecek ketersediaan datanya
-                            $status_asli = isset($row['status']) ? $row['status'] : '';
-                            $is_lulus    = strtolower($status_asli) === 'lulus';
+                            $nilai_angka = $row['nilai_angka'] ?? 0;
+
+                            $is_lulus = $nilai_angka >= 75;
+
+                            $jenis = $row['jenis'] ?? 'Sabaq';
+                            $surah = $row['nama_surah'] ?? 'Belum ditentukan';
+
+                            $ayat_mulai = $row['ayat_mulai'] ?? '-';
+                            $ayat_selesai = $row['ayat_selesai'] ?? '-';
+
+                            $nama_ustadz = $row['nama_ustadz'] ?? 'Ustadz Pembimbing';
+                            $catatan = isset($row['catatan']) ? trim($row['catatan']) : '';
+
+                            $tgl_format = !empty($row['tanggal_setor'])
+                                ? date('d M Y', strtotime($row['tanggal_setor']))
+                                : 'Tanggal tidak tersedia';
                             
-                            $jenis       = isset($row['jenis_setoran']) ? $row['jenis_setoran'] : 'Sabaq';
-                            $surah       = isset($row['surah']) ? $row['surah'] : 'Belum ditentukan';
-                            $ayat        = isset($row['ayat']) ? $row['ayat'] : '-';
-                            $nama_ustadz = isset($row['nama_ustadz']) ? $row['nama_ustadz'] : 'Ustadz Pembimbing';
-                            $catatan     = isset($row['catatan']) ? trim($row['catatan']) : '';
-                            
-                            $tgl_format  = !empty($row['tanggal']) ? date('d M Y', strtotime($row['tanggal'])) : 'Tanggal tidak tersedia';
-                            
+
                             // Styling berdasarkan status
                             $dotColor = $is_lulus ? 'bg-emerald-500 border-emerald-100' : 'bg-amber-500 border-amber-100';
                             $badgeStyle = $is_lulus ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200';
                             $iconStatus = $is_lulus ? 'fa-circle-check' : 'fa-rotate-right';
-                            ?>
-                            
+                    ?>
+
                             <!-- Timeline Item -->
                             <div class="relative pl-6 sm:pl-8 group">
                                 <!-- Timeline Dot -->
                                 <div class="absolute -left-[11px] sm:-left-[11px] top-4 w-5 h-5 rounded-full border-4 <?php echo $dotColor; ?> group-hover:scale-125 transition-transform duration-300 shadow-sm z-10"></div>
-                                
+
                                 <!-- Card -->
                                 <div class="bg-slate-50/50 p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:bg-white transition-all duration-300 hover:-translate-y-1">
                                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -196,12 +225,12 @@ if ($santri) {
                                                     <i class="fa-regular fa-calendar text-slate-400"></i> <?php echo htmlspecialchars($tgl_format); ?>
                                                 </span>
                                             </div>
-                                            
+
                                             <h4 class="text-lg font-bold text-slate-800">
                                                 Surah <?php echo htmlspecialchars($surah); ?>
-                                                <span class="text-sm font-medium text-slate-500 ml-1">(Ayat <?php echo htmlspecialchars($ayat); ?>)</span>
+                                                <span class="text-sm font-medium text-slate-500 ml-1">(Ayat (Ayat <?php echo htmlspecialchars($ayat_mulai); ?> - <?php echo htmlspecialchars($ayat_selesai); ?>))</span>
                                             </h4>
-                                            
+
                                             <p class="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5">
                                                 <i class="fa-solid fa-user-pen text-slate-400"></i> Disimak oleh: <span class="font-medium text-slate-700"><?php echo htmlspecialchars($nama_ustadz); ?></span>
                                             </p>
@@ -210,7 +239,7 @@ if ($santri) {
                                         <!-- Badge Status Kanan -->
                                         <div class="shrink-0">
                                             <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border shadow-sm <?php echo $badgeStyle; ?>">
-                                                <i class="fa-solid <?php echo $iconStatus; ?>"></i> 
+                                                <i class="fa-solid <?php echo $iconStatus; ?>"></i>
                                                 <?php echo $is_lulus ? 'LULUS' : 'MENGULANG'; ?>
                                             </span>
                                         </div>
@@ -229,7 +258,7 @@ if ($santri) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <?php
+                        <?php
                         }
                     } else {
                         ?>
@@ -243,7 +272,7 @@ if ($santri) {
                                 <p class="text-sm text-slate-500 max-w-sm">Ananda belum memiliki histori setoran harian. Data akan muncul otomatis setelah Ustadz melakukan input.</p>
                             </div>
                         </div>
-                        <?php
+                    <?php
                     }
                     ?>
                 </div>
@@ -262,4 +291,5 @@ if ($santri) {
         }
     </script>
 </body>
+
 </html>
