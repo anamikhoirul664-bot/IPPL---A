@@ -143,11 +143,6 @@ $nama_pengasuh = $_SESSION['nama'] ?? 'Pengasuh';
                     <p class="text-xs font-semibold text-white truncate max-w-[100px]"><?php echo htmlspecialchars($nama_pengasuh); ?></p>
                     <p class="text-[9px] text-app-textNav uppercase tracking-wider">PENGASUH</p>
                 </div>
-            </div>
-            <a href="../../logout.php" title="Keluar" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600/80 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-xs">
-                <i class="fa-solid fa-right-from-bracket"></i>
-            </a>
-        </div>
     </aside>
 
     <!-- MAIN CONTENT AREA -->
@@ -231,7 +226,7 @@ $q_mon = mysqli_query($koneksi, "
                                         </td>
                                         <td class="p-3.5 font-medium text-slate-700">
                                             <span class="text-slate-900 font-semibold"><?php echo htmlspecialchars($row['nama_surah'] ?? '-'); ?></span>
-                                            <span class="text-slate-400 text-[11px] ml-1">(Ayat <?php echo $row['ayat_mulai']; ?> - <?php echo $row['ayat_selesai']; ?>)</span>
+                                            <span class="text-slate-400 text-[11px] ml-1">(Ayat <?php echo htmlspecialchars($row['ayat'] ?? '-'); ?>)</span>
                                         </td>
                                         <td class="p-3.5 text-slate-500 whitespace-nowrap">
                                             <div class="flex items-center space-x-1.5">

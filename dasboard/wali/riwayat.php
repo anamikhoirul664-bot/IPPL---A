@@ -106,10 +106,7 @@ if ($santri) {
             </nav>
         </div>
 
-        <a href="../../logout.php" class="flex items-center space-x-3 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 px-4 py-3.5 rounded-xl font-medium transition-all duration-200 border border-red-500/20 hover:shadow-lg hover:shadow-red-500/20 mt-8">
-            <i class="fa-solid fa-right-from-bracket w-5"></i>
-            <span>Keluar Sistem</span>
-        </a>
+
     </aside>
 
     <!-- Main Wrapper -->
