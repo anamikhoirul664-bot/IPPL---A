@@ -224,7 +224,7 @@ $result = mysqli_query($koneksi, $query);
                 </div>
             <?php endif; ?>
 
-            <!-- TOOLBAR & CARI DATA -->
+           <!-- TOOLBAR & CARI DATA -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
                 
                 <!-- Pencarian Teks -->
@@ -241,6 +241,7 @@ $result = mysqli_query($koneksi, $query);
                     <select x-model="roleFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                         <option value="">Semua Role</option>
                         <option value="ustad">Ustadz / Admin</option>
+                        <option value="pengasuh">Pengasuh</option>
                         <option value="wali">Wali Santri</option>
                         <option value="santri">Santri</option>
                     </select>
@@ -295,6 +296,8 @@ $result = mysqli_query($koneksi, $query);
                                         <td class="py-3.5 px-4 sm:px-5 whitespace-nowrap">
                                             <?php if ($row['role'] == 'ustad'): ?>
                                                 <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700">Ustadz / Admin</span>
+                                            <?php elseif ($row['role'] == 'pengasuh'): ?>
+                                                <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">Pengasuh</span>
                                             <?php elseif ($row['role'] == 'wali'): ?>
                                                 <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">Wali Santri</span>
                                             <?php else: ?>
@@ -337,6 +340,8 @@ $result = mysqli_query($koneksi, $query);
                     </table>
                 </div>
             </div>
+
+
 
         </div>
 
