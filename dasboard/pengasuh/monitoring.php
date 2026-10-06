@@ -202,30 +202,36 @@ $nama_pengasuh = $_SESSION['nama'] ?? 'Pengasuh';
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php
-                            $q_mon = mysqli_query($koneksi, "
-                                SELECT s.*, st.nama as nama_santri, u.nama as nama_ustadz
-                                FROM setoran s
-                                LEFT JOIN santri st ON s.santri_id = st.id
-                                LEFT JOIN users u ON s.ustadz_id = u.id
-                                ORDER BY s.tanggal DESC, s.id DESC
-                                LIMIT 15
-                            ");
+$q_mon = mysqli_query($koneksi, "
+    SELECT
+        s.*,
+        us.nama AS nama_santri,
+        uu.nama AS nama_ustadz,
+        sr.nama_surah
+    FROM setoran s
+    LEFT JOIN santri st ON s.santri_id = st.id
+    LEFT JOIN users us ON st.user_id = us.id
+    LEFT JOIN users uu ON s.ustadz_id = uu.id
+    LEFT JOIN surah sr ON s.surah_id = sr.id
+    ORDER BY s.tanggal_setor DESC, s.id DESC
+    LIMIT 15
+");
 
                             if ($q_mon && mysqli_num_rows($q_mon) > 0) {
                                 while ($row = mysqli_fetch_assoc($q_mon)) {
-                                    $is_lulus = strtolower($row['status']) == 'lulus';
+                                    $is_lulus = ($row['nilai_angka'] ?? 0) >= 75;
                                     ?>
                                     <tr class="hover:bg-slate-50/70 transition-colors">
                                         <td class="p-3.5 text-slate-500 whitespace-nowrap font-medium">
                                             <i class="fa-regular fa-calendar text-slate-400 mr-1.5"></i>
-                                            <?php echo date('d M Y', strtotime($row['tanggal'])); ?>
+                                            <?php echo date('d M Y', strtotime($row['tanggal_setor'])); ?>
                                         </td>
                                         <td class="p-3.5 font-semibold text-slate-800 whitespace-nowrap">
                                             <?php echo htmlspecialchars($row['nama_santri'] ?? 'Santri'); ?>
                                         </td>
                                         <td class="p-3.5 font-medium text-slate-700">
-                                            <span class="text-slate-900 font-semibold"><?php echo htmlspecialchars($row['surah']); ?></span>
-                                            <span class="text-slate-400 text-[11px] ml-1">(Ayat <?php echo htmlspecialchars($row['ayat'] ?? '-'); ?>)</span>
+                                            <span class="text-slate-900 font-semibold"><?php echo htmlspecialchars($row['nama_surah'] ?? '-'); ?></span>
+                                            <span class="text-slate-400 text-[11px] ml-1">(Ayat <?php echo $row['ayat_mulai']; ?> - <?php echo $row['ayat_selesai']; ?>)</span>
                                         </td>
                                         <td class="p-3.5 text-slate-500 whitespace-nowrap">
                                             <div class="flex items-center space-x-1.5">

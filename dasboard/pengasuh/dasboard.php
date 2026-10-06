@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'pengasuh'
     exit();
 }
 
-$nama_pengasuh = $_SESSION['nama'] ?? 'Pengasuh';
+$nama_pengasuh = $_SESSION['nama'] ?? $_SESSION['nama_user'] ?? 'Pengasuh';
 
 // Hitung Ringkasan Data
 $q_santri = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM santri");
@@ -39,7 +39,10 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Alpine.js untuk Drawer Mobile Sidebar & Animasi -->
+    <!-- Chart.js (Untuk Visualisasi Grafik Hafalan) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Alpine.js untuk Modal, Sidebar, & Interaksi -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
@@ -54,20 +57,24 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
                             sidebar: '#061E29',     /* Dark Teal/Navy */
                             active: '#0D9488',      /* Tosca/Teal Active */
                             activeHover: '#0F766E',
-                            bg: '#F4F6F8',          /* Light Background */
+                            bg: '#F8FAFC',          /* Slate Light Background */
                             card: '#FFFFFF',
                             textNav: '#94A3B8',
-                            headerBtn: '#0D9488'
                         }
                     },
                     keyframes: {
                         fadeInUp: {
-                            '0%': { opacity: 0, transform: 'translateY(12px)' },
-                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                            '0%': { opacity: '0', transform: 'translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.4' },
+                            '50%': { opacity: '0.8' },
                         }
                     },
                     animation: {
-                        'fade-in': 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-glow': 'pulseGlow 3s infinite ease-in-out',
                     }
                 }
             }
@@ -75,16 +82,18 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
     </script>
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F4F6F8; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: #061E29; }
         ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-app-bg text-slate-800 min-h-screen flex flex-col md:flex-row antialiased overflow-x-hidden" x-data="{ sidebarOpen: false }">
+<body class="bg-app-bg text-slate-800 min-h-screen flex flex-col md:flex-row antialiased overflow-x-hidden" 
+      x-data="{ sidebarOpen: false, logoutModalOpen: false }">
 
     <!-- OVERLAY MOBILE SIDEBAR -->
     <div x-show="sidebarOpen" 
+         x-cloak
          x-transition:enter="transition-opacity ease-linear duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -98,16 +107,16 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
     <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
            class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-app-sidebar text-slate-300 min-h-screen p-4 flex flex-col justify-between transition-transform duration-300 ease-in-out md:translate-x-0 border-r border-slate-800/50 shadow-2xl md:shadow-none">
         
-        <div class="overflow-y-auto max-h-[calc(100vh-80px)] pr-1">
+        <div class="overflow-y-auto max-h-[calc(100vh-90px)] pr-1">
             <!-- Header Brand / Logo -->
-            <div class="flex items-center justify-between mb-6 px-2 pt-1">
+            <div class="flex items-center justify-between mb-8 px-2 pt-2">
                 <div class="flex items-center space-x-3">
-                    <div class="w-9 h-9 rounded-xl bg-app-active text-white flex items-center justify-center font-bold text-base shadow-md">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-400 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-teal-900/30">
                         <i class="fa-solid fa-quran"></i>
                     </div>
                     <div>
-                        <span class="text-base font-bold text-white tracking-wide block leading-tight">E-Hafalan</span>
-                        <span class="text-[10px] font-semibold text-app-textNav uppercase tracking-wider">PANEL PENGASUH</span>
+                        <span class="text-base font-extrabold text-white tracking-wide block leading-tight">E-Hafalan</span>
+                        <span class="text-[10px] font-semibold text-teal-400 tracking-wider">PANEL PENGASUH</span>
                     </div>
                 </div>
                 <button @click="sidebarOpen = false" class="md:hidden text-slate-400 hover:text-white p-1">
@@ -116,8 +125,8 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
             </div>
 
             <!-- Navigation Links -->
-            <nav class="space-y-1">
-                <a href="dasboard.php" class="flex items-center space-x-3 bg-app-active hover:bg-app-activeHover text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all duration-150 shadow-md">
+            <nav class="space-y-1.5">
+                <a href="dashboard.php" class="flex items-center space-x-3 bg-app-active text-white px-4 py-3 rounded-xl font-semibold text-xs shadow-md shadow-teal-900/20 transition-all duration-200">
                     <i class="fa-solid fa-gauge-high w-5 text-center text-sm"></i>
                     <span>Dashboard</span>
                 </a>
@@ -126,41 +135,41 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
                     <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">AKADEMIK & HAFALAN</span>
                 </div>
 
-                <a href="monitoring.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/50 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-150 group">
-                    <i class="fa-solid fa-eye w-5 text-center text-app-textNav group-hover:text-app-active transition-colors"></i>
+                <a href="monitoring.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/60 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 group">
+                    <i class="fa-solid fa-eye w-5 text-center group-hover:text-teal-400 transition-colors"></i>
                     <span>Monitoring Setoran</span>
                 </a>
 
-                <a href="statistik.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/50 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-150 group">
-                    <i class="fa-solid fa-chart-line w-5 text-center text-app-textNav group-hover:text-app-active transition-colors"></i>
+                <a href="statistik.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/60 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 group">
+                    <i class="fa-solid fa-chart-line w-5 text-center group-hover:text-teal-400 transition-colors"></i>
                     <span>Statistik Hafalan</span>
                 </a>
 
-                <div class="pt-4 pb-1 px-4">
+                <div class="pt-5 pb-1 px-4">
                     <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">LAPORAN & INFO</span>
                 </div>
 
-                <a href="laporan.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/50 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-150 group">
-                    <i class="fa-solid fa-file-lines w-5 text-center text-app-textNav group-hover:text-app-active transition-colors"></i>
+                <a href="laporan.php" class="flex items-center space-x-3 text-app-textNav hover:text-white hover:bg-slate-800/60 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 group">
+                    <i class="fa-solid fa-file-lines w-5 text-center group-hover:text-teal-400 transition-colors"></i>
                     <span>Laporan Hafalan</span>
                 </a>
             </nav>
         </div>
 
-        <!-- User Profile Card -->
+        <!-- User Profile Card (Di Bawah Sidebar) -->
         <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between px-2">
-            <div class="flex items-center space-x-2.5 overflow-hidden">
-                <div class="w-8 h-8 rounded-full bg-app-active text-white font-bold flex items-center justify-center text-xs">
+            <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="w-9 h-9 rounded-xl bg-teal-600/30 border border-teal-500/30 text-teal-300 font-bold flex items-center justify-center text-xs shadow-inner">
                     <?php echo strtoupper(substr($nama_pengasuh, 0, 1)); ?>
                 </div>
                 <div class="overflow-hidden">
-                    <p class="text-xs font-semibold text-white truncate max-w-[100px]"><?php echo htmlspecialchars($nama_pengasuh); ?></p>
-                    <p class="text-[9px] text-app-textNav uppercase tracking-wider">PENGASUH</p>
+                    <p class="text-xs font-semibold text-white truncate max-w-[110px]"><?php echo htmlspecialchars($nama_pengasuh); ?></p>
+                    <p class="text-[9px] text-teal-400 font-bold uppercase tracking-wider">Pengasuh</p>
                 </div>
             </div>
-            <a href="../../logout.php" title="Keluar" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600/80 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-xs">
+            <button @click="logoutModalOpen = true" title="Keluar" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-rose-600/90 text-slate-400 hover:text-white flex items-center justify-center transition-all duration-200 text-xs shadow-sm">
                 <i class="fa-solid fa-right-from-bracket"></i>
-            </a>
+            </button>
         </div>
     </aside>
 
@@ -180,95 +189,113 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
             </button>
         </div>
 
-        <div class="p-4 sm:p-8 lg:p-8 flex-1 max-w-7xl w-full mx-auto animate-fade-in">
+        <div class="p-4 sm:p-8 lg:p-8 flex-1 max-w-7xl w-full mx-auto animate-fade-in space-y-6">
             
             <!-- HEADER -->
-            <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">Ringkasan Dashboard</h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Selamat datang kembali, KH. <span class="font-medium text-slate-600"><?php echo htmlspecialchars($nama_pengasuh); ?></span>!</p>
+                    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Ringkasan Dashboard</h1>
+                    <p class="text-xs text-slate-500 mt-1">Selamat datang kembali, <span class="font-semibold text-teal-700">KH. <?php echo htmlspecialchars($nama_pengasuh); ?></span>!</p>
                 </div>
 
                 <div class="flex items-center space-x-3">
-                    <a href="monitoring.php" class="inline-flex items-center space-x-2 bg-app-active hover:bg-app-activeHover text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all duration-150">
+                    <a href="monitoring.php" class="inline-flex items-center space-x-2 bg-app-active hover:bg-app-activeHover text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-md shadow-teal-600/20 transition-all duration-150 transform hover:-translate-y-0.5">
                         <i class="fa-solid fa-eye text-xs"></i>
                         <span>Lihat Monitoring</span>
                     </a>
                 </div>
             </header>
 
-            <!-- STATS CARDS -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- STATS CARDS WITH COUNTER ANIMATION -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 
                 <!-- Card 1: Total Santri -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-emerald-200 transition-all duration-300 transform hover:-translate-y-1">
                     <div>
-                        <p class="text-[11px] font-medium text-slate-400 mb-1">Total Santri</p>
-                        <h3 class="text-xl font-bold text-slate-900">
-                            <?php echo $total_santri; ?> 
-                            <span class="text-xs font-normal text-slate-400">Orang</span>
+                        <p class="text-xs font-medium text-slate-400 mb-1">Total Santri</p>
+                        <h3 class="text-2xl font-bold text-slate-900">
+                            <span class="count-up" data-target="<?php echo $total_santri; ?>">0</span>
+                            <span class="text-xs font-normal text-slate-400 ml-0.5">Orang</span>
                         </h3>
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-user-graduate"></i>
                     </div>
                 </div>
 
                 <!-- Card 2: Total Ustadz -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-teal-200 transition-all duration-300 transform hover:-translate-y-1">
                     <div>
-                        <p class="text-[11px] font-medium text-slate-400 mb-1">Total Ustadz</p>
-                        <h3 class="text-xl font-bold text-slate-900">
-                            <?php echo $total_ustadz; ?> 
-                            <span class="text-xs font-normal text-slate-400">Pengajar</span>
+                        <p class="text-xs font-medium text-slate-400 mb-1">Total Ustadz</p>
+                        <h3 class="text-2xl font-bold text-slate-900">
+                            <span class="count-up" data-target="<?php echo $total_ustadz; ?>">0</span>
+                            <span class="text-xs font-normal text-slate-400 ml-0.5">Pengajar</span>
                         </h3>
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-sm">
+                    <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-chalkboard-user"></i>
                     </div>
                 </div>
 
                 <!-- Card 3: Aktivitas Setoran -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-purple-200 transition-all duration-300 transform hover:-translate-y-1">
                     <div>
-                        <p class="text-[11px] font-medium text-slate-400 mb-1">Aktivitas Setoran</p>
-                        <h3 class="text-xl font-bold text-slate-900">
-                            <?php echo $total_setoran; ?> 
-                            <span class="text-xs font-normal text-slate-400">Kali</span>
+                        <p class="text-xs font-medium text-slate-400 mb-1">Aktivitas Setoran</p>
+                        <h3 class="text-2xl font-bold text-slate-900">
+                            <span class="count-up" data-target="<?php echo $total_setoran; ?>">0</span>
+                            <span class="text-xs font-normal text-slate-400 ml-0.5">Kali</span>
                         </h3>
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-book-quran"></i>
                     </div>
                 </div>
 
                 <!-- Card 4: Setoran Lancar -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-amber-200 transition-all duration-300 transform hover:-translate-y-1">
                     <div>
-                        <p class="text-[11px] font-medium text-slate-400 mb-1">Setoran Lancar</p>
-                        <h3 class="text-xl font-bold text-slate-900">
-                            <?php echo $total_lulus; ?> 
-                            <span class="text-xs font-normal text-slate-400">Capaian</span>
+                        <p class="text-xs font-medium text-slate-400 mb-1">Setoran Lancar</p>
+                        <h3 class="text-2xl font-bold text-slate-900">
+                            <span class="count-up" data-target="<?php echo $total_lulus; ?>">0</span>
+                            <span class="text-xs font-normal text-slate-400 ml-0.5">Capaian</span>
                         </h3>
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shadow-inner">
                         <i class="fa-solid fa-circle-check"></i>
                     </div>
                 </div>
 
             </div>
 
+            <!-- GRAFIK RINGKASAN DATA (TAMBAHAN FITUR INTERAKTIF) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Visualisasi Perbandingan Hafalan</h3>
+                        <p class="text-[11px] text-slate-400">Ringkasan total aktivitas dan kelancaran setoran santri</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded-full">Realtime</span>
+                </div>
+                <div class="h-56 relative w-full">
+                    <canvas id="hafalanChart"></canvas>
+                </div>
+            </div>
+
             <!-- ACTION BANNER -->
-            <div class="bg-app-sidebar rounded-2xl p-6 text-white flex flex-col md:flex-row justify-between items-center shadow-lg border border-slate-800">
-                <div class="mb-4 md:mb-0 max-w-xl">
-                    <h2 class="text-lg font-bold mb-1">Monitoring & Laporan Pesantren</h2>
+            <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-app-sidebar to-slate-900 rounded-2xl p-6 text-white flex flex-col md:flex-row justify-between items-center shadow-lg border border-slate-800">
+                <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="mb-4 md:mb-0 max-w-xl z-10">
+                    <h2 class="text-lg font-bold mb-1 flex items-center space-x-2">
+                        <span>Monitoring & Laporan Pesantren</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    </h2>
                     <p class="text-slate-400 text-xs leading-relaxed">Pantau perkembangan santri secara menyeluruh atau unduh laporan pencapaian harian dan bulanan.</p>
                 </div>
-                <div class="flex items-center space-x-3 w-full md:w-auto">
-                    <a href="monitoring.php" class="flex-1 md:flex-none text-center px-4 py-2.5 bg-app-active hover:bg-app-activeHover text-white font-semibold rounded-xl text-xs transition-colors shadow-sm">
+                <div class="flex items-center space-x-3 w-full md:w-auto z-10">
+                    <a href="monitoring.php" class="flex-1 md:flex-none text-center px-5 py-2.5 bg-app-active hover:bg-app-activeHover text-white font-semibold rounded-xl text-xs transition-all duration-150 shadow-md transform hover:-translate-y-0.5">
                         Monitoring
                     </a>
-                    <a href="laporan.php" class="flex-1 md:flex-none text-center px-4 py-2.5 bg-white text-slate-800 hover:bg-slate-100 font-semibold rounded-xl text-xs transition-colors shadow-sm">
+                    <a href="laporan.php" class="flex-1 md:flex-none text-center px-5 py-2.5 bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 font-semibold rounded-xl text-xs transition-all duration-150 shadow-sm backdrop-blur-sm">
                         Unduh Laporan
                     </a>
                 </div>
@@ -277,5 +304,113 @@ $total_lulus = mysqli_fetch_assoc($q_lulus)['total'] ?? 0;
         </div>
     </main>
 
+    <!-- MODAL CONFIRMATION LOGOUT -->
+    <div x-show="logoutModalOpen" 
+         x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click.self="logoutModalOpen = false"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+         
+        <div x-show="logoutModalOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
+            
+            <div class="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                <i class="fa-solid fa-right-from-bracket text-2xl"></i>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-1">Konfirmasi Logout</h3>
+            <p class="text-xs text-slate-400 mb-6">Apakah Anda yakin ingin keluar dari sistem E-Hafalan?</p>
+
+            <div class="flex items-center space-x-3">
+                <button type="button" @click="logoutModalOpen = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition-all">
+                    Batal
+                </button>
+                <a href="../../logout.php" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-lg shadow-red-600/30 text-center">
+                    Ya, Keluar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ANIMATIONS & CHART INITIALIZATION -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Animasi JS Count-Up untuk Angka Statistik
+            const counters = document.querySelectorAll('.count-up');
+            counters.forEach(counter => {
+                const target = +counter.getAttribute('data-target');
+                const duration = 1200; // ms
+                const stepTime = 20;
+                const steps = duration / stepTime;
+                const increment = target / steps;
+                let current = 0;
+
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        counter.innerText = target;
+                        clearInterval(timer);
+                    } else {
+                        counter.innerText = Math.ceil(current);
+                    }
+                }, stepTime);
+            });
+
+            // 2. Chart.js untuk Grafik Statistik Hafalan
+            const ctx = document.getElementById('hafalanChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Santri', 'Ustadz', 'Total Setoran', 'Setoran Lancar'],
+                    datasets: [{
+                        label: 'Jumlah Data',
+                        data: [
+                            <?php echo $total_santri; ?>, 
+                            <?php echo $total_ustadz; ?>, 
+                            <?php echo $total_setoran; ?>, 
+                            <?php echo $total_lulus; ?>
+                        ],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(13, 148, 136, 0.85)',
+                            'rgba(147, 51, 234, 0.85)',
+                            'rgba(245, 158, 11, 0.85)'
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 11 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

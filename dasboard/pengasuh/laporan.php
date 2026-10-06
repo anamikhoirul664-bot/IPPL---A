@@ -225,15 +225,19 @@ $nama_pengasuh = $_SESSION['nama'] ?? 'Pengasuh';
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php
-                            $q_lap = mysqli_query($koneksi, "
-                                SELECT st.id, st.nis, st.nama, 
-                                       COUNT(s.id) as total_setoran,
-                                       SUM(CASE WHEN s.status = 'Lulus' THEN 1 ELSE 0 END) as total_lulus
-                                FROM santri st
-                                LEFT JOIN setoran s ON st.id = s.santri_id
-                                GROUP BY st.id
-                                ORDER BY st.nama ASC
-                            ");
+                        $q_lap = mysqli_query($koneksi, "
+    SELECT
+        st.id,
+        st.nis,
+        u.nama AS nama_santri,
+        COUNT(s.id) AS total_setoran,
+        SUM(CASE WHEN s.nilai_angka >= 75 THEN 1 ELSE 0 END) AS total_lulus
+    FROM santri st
+    LEFT JOIN users u ON st.user_id = u.id
+    LEFT JOIN setoran s ON st.id = s.santri_id
+    GROUP BY st.id, st.nis, u.nama
+    ORDER BY u.nama ASC
+");
 
                             if ($q_lap && mysqli_num_rows($q_lap) > 0) {
                                 $no = 1;
@@ -242,7 +246,7 @@ $nama_pengasuh = $_SESSION['nama'] ?? 'Pengasuh';
                                     <tr class="hover:bg-slate-50/50 transition-colors">
                                         <td class="p-3 border border-slate-200 text-center font-medium text-slate-500"><?php echo $no++; ?></td>
                                         <td class="p-3 border border-slate-200 font-mono text-slate-600"><?php echo htmlspecialchars($row['nis'] ?? '-'); ?></td>
-                                        <td class="p-3 border border-slate-200 font-semibold text-slate-800"><?php echo htmlspecialchars($row['nama']); ?></td>
+                                        <td class="p-3 border border-slate-200 font-semibold text-slate-800"><?php echo htmlspecialchars($row['nama_santri'] ?? '-'); ?></td>
                                         <td class="p-3 border border-slate-200"><?php echo $row['total_setoran']; ?> Kali</td>
                                         <td class="p-3 border border-slate-200"><?php echo $row['total_lulus']; ?> Surah</td>
                                         <td class="p-3 border border-slate-200 font-semibold text-emerald-600">
