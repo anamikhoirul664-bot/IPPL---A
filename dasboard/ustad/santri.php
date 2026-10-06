@@ -329,7 +329,7 @@ $result = mysqli_query($koneksi, $query);
                                         <!-- HAFALAN -->
                                         <td class="py-3.5 px-4 sm:px-5 whitespace-nowrap">
                                             <div class="flex items-center space-x-1">
-                                                <span class="font-bold text-emerald-600"><?php echo $row['total_hafalan_juz']; ?> Juz</span> 
+                                                <span class="font-bold text-emerald-600"><?php echo $row['total_hafalan']; ?> Juz</span> 
                                                 <span class="text-[11px] text-slate-400">/ Target <?php echo $row['target_juz']; ?> Juz</span>
                                             </div>
                                         </td>
