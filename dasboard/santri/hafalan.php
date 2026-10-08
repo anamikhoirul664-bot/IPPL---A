@@ -628,7 +628,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
                         <div>
                             <label for="surah_id" class="block text-xs font-semibold text-slate-600 mb-2">Surah</label>
                             <select id="surah_id" name="surah_id" onchange="autoIsiJuz(this)" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="">Pilih surah</option>
+                                <option value="">Pilih Surah</option>
                                 <?php while ($surah = mysqli_fetch_assoc($result_surah)):
                                     $no_surah = (int) $surah['nomor_surah'];
                                     $juz_estimasi = isset($juz_map[$no_surah]) ? $juz_map[$no_surah] : 30;
@@ -652,7 +652,7 @@ $rata_nilai = round($data_rata['rata_nilai'] ?? 0, 2);
 
                         <div>
                             <label for="juz" class="block text-xs font-semibold text-slate-600 mb-2">Juz</label>
-                            <input type="number" id="juz" name="juz" min="1" max="30" required placeholder="Pilih surah..." class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <input type="number" id="juz" name="juz" min="1" max="30" required placeholder="Pilih Juz..." class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
 
                         <div class="md:col-span-2">
