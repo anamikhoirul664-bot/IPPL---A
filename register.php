@@ -11,7 +11,7 @@ $error = '';
 $success = '';
 
 // Inisialisasi variabel input agar tidak hilang saat ada eror
-$nama = $username = $email = $role = '';
+$nama = $username = $email = $role = $nis_santri = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi CSRF Token
@@ -19,12 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf_token'], $token)) {
         $error = "Sesi tidak valid. Silakan muat ulang halaman dan coba lagi.";
     } else {
-        $nama     = trim($_POST['nama'] ?? '');
-        $username = trim($_POST['username'] ?? '');
-        $email    = trim($_POST['email'] ?? '');
-        $role     = trim($_POST['role'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $confirm  = $_POST['confirm_password'] ?? '';
+        $nama       = trim($_POST['nama'] ?? '');
+        $username   = trim($_POST['username'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $role       = trim($_POST['role'] ?? '');
+        $nis_santri = trim($_POST['nis_santri'] ?? '');
+        $password   = $_POST['password'] ?? '';
+        $confirm    = $_POST['confirm_password'] ?? '';
 
         // Hanya izinkan pendaftaran publik untuk 'santri' dan 'wali'
         $allowed_roles = ['santri', 'wali'];
@@ -33,11 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($nama) || empty($username) || empty($email) || empty($role) || empty($password) || empty($confirm)) {
             $error = "Semua kolom wajib diisi.";
         } 
-        // 2. VALIDASI FORMAT NAMA (Hanya Huruf dan Spasi, 3-50 Karakter)
+        // 1b. VALIDASI NIS KHUSUS ROLE WALI
+        elseif ($role === 'wali' && empty($nis_santri)) {
+            $error = "NIS Santri wajib diisi untuk pendaftaran Wali Santri.";
+        }
+        // 2. VALIDASI FORMAT NAMA
         elseif (!preg_match('/^[a-zA-Z\s\'.]{3,50}$/', $nama)) {
             $error = "Nama hanya boleh berisi huruf, spasi, tanda petik, dan titik (3–50 karakter).";
         }
-        // 3. VALIDASI FORMAT USERNAME (Hanya Huruf, Angka, Underscore, 3-20 Karakter)
+        // 3. VALIDASI FORMAT USERNAME
         elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
             $error = "Username hanya boleh berupa 3–20 karakter huruf, angka, atau underscore (_).";
         } 
@@ -49,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif (!in_array($role, $allowed_roles, true)) {
             $error = "Peran (role) yang dipilih tidak sah.";
         } 
-        // 6. VALIDASI KEKUATAN PASSWORD (Min. 8 karakter, Kombinasi Huruf Besar, Kecil, Angka)
+        // 6. VALIDASI KEKUATAN PASSWORD
         elseif (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
             $error = "Password minimal 8 karakter dan harus mengandung kombinasi huruf besar, huruf kecil, serta angka.";
         } 
@@ -70,52 +75,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 mysqli_stmt_close($check_stmt);
 
-                // Transaksi Database Dimulai (Aman & Atomis)
-                mysqli_begin_transaction($koneksi);
-
-                try {
-                    // Hash Password menggunakan BCRYPT
-                    $hashed_password = password_hash($password, PASSWORD_BCRYPT);
-
-                    // Insert User Baru
-                    $insert_stmt = mysqli_prepare($koneksi, "INSERT INTO users (nama, username, email, password, role) VALUES (?, ?, ?, ?, ?)");
-                    mysqli_stmt_bind_param($insert_stmt, "sssss", $nama, $username, $email, $hashed_password, $role);
-
-                    if (!mysqli_stmt_execute($insert_stmt)) {
-                        throw new Exception("Gagal membuat akun.");
-                    }
-
-                    $user_id = mysqli_insert_id($koneksi);
-                    mysqli_stmt_close($insert_stmt);
-
-                    // Insert ke Tabel Spesifik Role
-                    if ($role === 'santri') {
-                        $nis = 'NIS' . str_pad($user_id, 5, '0', STR_PAD_LEFT);
-                        $role_stmt = mysqli_prepare($koneksi, "INSERT INTO santri (user_id, nis) VALUES (?, ?)");
-                        mysqli_stmt_bind_param($role_stmt, "is", $user_id, $nis);
-                    } elseif ($role === 'wali') {
-                        $role_stmt = mysqli_prepare($koneksi, "INSERT INTO wali_santri (user_id) VALUES (?)");
-                        mysqli_stmt_bind_param($role_stmt, "i", $user_id);
-                    }
-
-                    if (isset($role_stmt) && !mysqli_stmt_execute($role_stmt)) {
-                        throw new Exception("Gagal membuat profil peran.");
-                    }
-                    if (isset($role_stmt)) {
-                        mysqli_stmt_close($role_stmt);
-                    }
-
-                    // Commit transaksi jika seluruh tahapan sukses
-                    mysqli_commit($koneksi);
+                // Cek Validitas NIS Santri (Khusus Pendaftaran Wali)
+                $santri_target_id = null;
+                if ($role === 'wali') {
+                    $check_nis = mysqli_prepare($koneksi, "SELECT id FROM santri WHERE nis = ?");
+                    mysqli_stmt_bind_param($check_nis, "s", $nis_santri);
+                    mysqli_stmt_execute($check_nis);
+                    $res_nis = mysqli_stmt_get_result($check_nis);
                     
-                    $success = "Pendaftaran berhasil! Silakan login dengan akun Anda.";
-                    // Reset input
-                    $nama = $username = $email = $role = '';
+                    if ($row_santri = mysqli_fetch_assoc($res_nis)) {
+                        $santri_target_id = $row_santri['id'];
+                    } else {
+                        $error = "NIS Santri tidak ditemukan. Pastikan akun Santri sudah terdaftar terlebih dahulu.";
+                    }
+                    mysqli_stmt_close($check_nis);
+                }
 
-                } catch (Exception $e) {
-                    // Rollback transaksi jika terjadi kesalahan
-                    mysqli_rollback($koneksi);
-                    $error = "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
+                if (empty($error)) {
+                    // Transaksi Database Dimulai (Aman & Atomis)
+                    mysqli_begin_transaction($koneksi);
+
+                    try {
+                        // Hash Password menggunakan BCRYPT
+                        $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+
+                        // Insert User Baru
+                        $insert_stmt = mysqli_prepare($koneksi, "INSERT INTO users (nama, username, email, password, role) VALUES (?, ?, ?, ?, ?)");
+                        mysqli_stmt_bind_param($insert_stmt, "sssss", $nama, $username, $email, $hashed_password, $role);
+
+                        if (!mysqli_stmt_execute($insert_stmt)) {
+                            throw new Exception("Gagal membuat akun.");
+                        }
+
+                        $user_id = mysqli_insert_id($koneksi);
+                        mysqli_stmt_close($insert_stmt);
+
+                        // Insert ke Tabel Spesifik Role
+                        if ($role === 'santri') {
+                            $nis = 'NIS' . str_pad($user_id, 5, '0', STR_PAD_LEFT);
+                            $role_stmt = mysqli_prepare($koneksi, "INSERT INTO santri (user_id, nis) VALUES (?, ?)");
+                            mysqli_stmt_bind_param($role_stmt, "is", $user_id, $nis);
+                            
+                            if (!mysqli_stmt_execute($role_stmt)) {
+                                throw new Exception("Gagal membuat profil santri.");
+                            }
+                            mysqli_stmt_close($role_stmt);
+
+                        } elseif ($role === 'wali') {
+                            $role_stmt = mysqli_prepare($koneksi, "INSERT INTO wali_santri (user_id) VALUES (?)");
+                            mysqli_stmt_bind_param($role_stmt, "i", $user_id);
+                            
+                            if (!mysqli_stmt_execute($role_stmt)) {
+                                throw new Exception("Gagal membuat profil wali.");
+                            }
+                            
+                            $wali_id_baru = mysqli_insert_id($koneksi);
+                            mysqli_stmt_close($role_stmt);
+
+                            // Hubungkan Wali dengan Santri
+                            $link_stmt = mysqli_prepare($koneksi, "UPDATE santri SET wali_id = ? WHERE id = ?");
+                            mysqli_stmt_bind_param($link_stmt, "ii", $wali_id_baru, $santri_target_id);
+                            
+                            if (!mysqli_stmt_execute($link_stmt)) {
+                                throw new Exception("Gagal menghubungkan data wali dengan santri.");
+                            }
+                            mysqli_stmt_close($link_stmt);
+                        }
+
+                        // Commit transaksi jika seluruh tahapan sukses
+                        mysqli_commit($koneksi);
+                        
+                        $success = "Pendaftaran berhasil! Silakan login dengan akun Anda.";
+                        // Reset input
+                        $nama = $username = $email = $role = $nis_santri = '';
+
+                    } catch (Exception $e) {
+                        // Rollback transaksi jika terjadi kesalahan
+                        mysqli_rollback($koneksi);
+                        $error = "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
+                    }
                 }
             }
         }
@@ -211,11 +249,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Role Selection -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Daftar Sebagai (Role) *</label>
-                    <select name="role" required class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
+                    <select name="role" id="roleSelect" onchange="toggleNisInput()" required class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
                         <option value="" disabled <?php echo empty($role) ? 'selected' : ''; ?>>Pilih Peran Pendaftaran</option>
                         <option value="santri" <?php echo $role === 'santri' ? 'selected' : ''; ?>>Santri</option>
                         <option value="wali" <?php echo $role === 'wali' ? 'selected' : ''; ?>>Wali Santri</option>
                     </select>
+                </div>
+
+                <!-- Input NIS Santri (Hanya Muncul Jika Role = Wali) -->
+                <div id="nisContainer" class="<?php echo $role === 'wali' ? '' : 'hidden'; ?>">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">NIS Santri (Anak) *</label>
+                    <input type="text" name="nis_santri" id="nis_santri" value="<?php echo htmlspecialchars($nis_santri); ?>" placeholder="Contoh: NIS00001" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
+                    <p class="text-[11px] text-slate-400 mt-1">Masukkan Nomor Induk Santri (NIS) dari anak yang bersangkutan.</p>
                 </div>
 
                 <!-- Password & Confirm Password -->
@@ -271,6 +316,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        // Toggle Input NIS Santri berdasarkan Role yang dipilih
+        function toggleNisInput() {
+            const roleSelect = document.getElementById('roleSelect');
+            const nisContainer = document.getElementById('nisContainer');
+            const nisInput = document.getElementById('nis_santri');
+
+            if (roleSelect.value === 'wali') {
+                nisContainer.classList.remove('hidden');
+                nisInput.setAttribute('required', 'required');
+            } else {
+                nisContainer.classList.add('hidden');
+                nisInput.removeAttribute('required');
+                nisInput.value = '';
+            }
+        }
+
         // Toggle Show/Hide Password
         function togglePass(inputId, eyeId) {
             const input = document.getElementById(inputId);
@@ -316,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function checkMatch() {
             const pass = document.getElementById('password').value;
             const confirm = document.getElementById('confirm_password').value;
-            const msg = document.getElementById('match-msg');
+            msg = document.getElementById('match-msg');
 
             if (confirm.length === 0) {
                 msg.classList.add('hidden');
@@ -332,6 +393,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 msg.innerHTML = '<i class="fa-solid fa-xmark mr-1.5"></i> Konfirmasi password tidak cocok.';
             }
         }
+
+        // Jalankan pemeriksaan awal saat halaman dimuat
+        document.addEventListener("DOMContentLoaded", function() {
+            toggleNisInput();
+        });
     </script>
 </body>
 

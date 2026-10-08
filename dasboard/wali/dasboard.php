@@ -12,7 +12,16 @@ $wali_id = $_SESSION['user_id'];
 $nama_wali = $_SESSION['nama'] ?? $_SESSION['nama_user'] ?? 'Wali Santri';
 
 // Query Ambil Data Santri Berdasarkan Wali ID 
-$query_santri = mysqli_query($koneksi, "SELECT * FROM santri WHERE wali_id = '$wali_id' LIMIT 1");
+// Query Ambil Data Santri + Nama Santri via JOIN
+$query_santri = mysqli_query($koneksi, "
+    SELECT s.*, u.nama AS nama_santri 
+    FROM wali_santri ws
+    JOIN santri s ON s.wali_id = ws.id
+    JOIN users u ON s.user_id = u.id
+    WHERE ws.user_id = '$wali_id' 
+    LIMIT 1
+");
+
 $santri = mysqli_fetch_assoc($query_santri) ?? [];
 $santri_id = $santri['id'] ?? 0;
 
@@ -28,6 +37,17 @@ if ($santri_id > 0) {
     $q_juz = mysqli_query($koneksi, "SELECT COUNT(DISTINCT juz) as total_juz FROM setoran WHERE santri_id = '$santri_id' AND kelancaran IN ('Sangat Lancar', 'Lancar')");
     $total_juz = mysqli_fetch_assoc($q_juz)['total_juz'] ?? 0;
 }
+
+// Ambil data setoran paling terakhir dari santri
+// Setoran Paling Terakhir
+$q_last = mysqli_query($koneksi, "
+    SELECT st.*, s.nama_surah 
+    FROM setoran st
+    JOIN surah s ON st.surah_id = s.id
+    WHERE st.santri_id = '$santri_id' 
+    ORDER BY st.id DESC LIMIT 1
+");
+$last_setoran = mysqli_fetch_assoc($q_last);
 ?>
 
 <!DOCTYPE html>
@@ -232,12 +252,13 @@ if ($santri_id > 0) {
             <!-- STATS GRID -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 
+
                 <!-- Card 1: Identitas Santri -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1">
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Identitas Santri</p>
                         <h3 class="text-lg font-bold text-slate-900 truncate max-w-[180px]">
-                            <?php echo htmlspecialchars($santri['nama'] ?? 'Belum Terhubung'); ?>
+                            <?php echo htmlspecialchars($santri['nama_santri'] ?? 'Belum Terhubung'); ?>
                         </h3>
                         <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                             <i class="fa-regular fa-id-card text-blue-500"></i> NIS: <span class="font-semibold text-slate-700"><?php echo htmlspecialchars($santri['nis'] ?? '-'); ?></span>
@@ -249,15 +270,18 @@ if ($santri_id > 0) {
                 </div>
 
                 <!-- Card 2: Capaian Hafalan -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-emerald-200 transition-all duration-300 transform hover:-translate-y-1">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md hover:border-emerald-200 transition-all duration-300">
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capaian Juz</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Progres Hafalan</p>
                         <h3 class="text-2xl font-bold text-slate-900">
-                            <span class="count-up" data-target="<?php echo $total_juz > 0 ? $total_juz : 2; ?>">0</span>
-                            <span class="text-xs font-normal text-slate-400 ml-0.5">Juz Terkuasai</span>
+                            <span class="count-up" data-target="<?php echo $total_juz; ?>">0</span>
+                            <span class="text-xs font-normal text-slate-400 ml-0.5">Juz Aktif</span>
                         </h3>
-                        <p class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                            <i class="fa-solid fa-circle-check"></i> <?php echo $total_setoran; ?> Kali Setoran
+                        
+                        <!-- Menampilkan Surah & Ayat Terakhir -->
+                        <p class="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-book-open"></i> 
+                            Terakhir: <?php echo !empty($last_setoran) ? htmlspecialchars($last_setoran['nama_surah']) . ' (Ayat ' . $last_setoran['ayat_mulai'] . '-' . $last_setoran['ayat_selesai'] . ')' : 'Belum ada setoran'; ?>
                         </p>
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-inner">
@@ -295,29 +319,60 @@ if ($santri_id > 0) {
                 </div>
             </div>
 
-            <!-- SETORAN TERAKHIR TABLE CARD -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800">Setoran Terakhir</h3>
-                        <p class="text-[11px] text-slate-400">Laporan hasil hafalan terbaru dari Ustadz</p>
-                    </div>
-                    <a href="riwayat.php" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1">
-                        <span>Lihat Semua</span>
-                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                    </a>
-                </div>
 
-                <div class="p-6 text-center py-10">
-                    <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex justify-center items-center mx-auto mb-3 text-emerald-600 shadow-inner">
-                        <i class="fa-solid fa-clock-rotate-left text-2xl"></i>
+            <!-- SETORAN TERAKHIR TABLE CARD -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Setoran Terakhir</h3>
+                            <p class="text-[11px] text-slate-400">Laporan hasil hafalan terbaru dari Ustadz</p>
+                        </div>
+                        <a href="riwayat.php" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1">
+                            <span>Lihat Semua</span>
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </a>
                     </div>
-                    <h4 class="text-sm font-bold text-slate-700">Aktivitas Hafalan Terpantau</h4>
-                    <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                        Silakan buka menu <b>Progres Hafalan</b> atau <b>Riwayat Setoran</b> untuk melihat detail kelancaran ayat & juz.
-                    </p>
+
+                    <?php if (!empty($last_setoran)): ?>
+                        <!-- TAMPILAN JIKA ADA DATA SETORAN -->
+                        <div class="p-5">
+                            <div class="flex items-center justify-between p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-sm">
+                                        Juz <?php echo htmlspecialchars($last_setoran['juz']); ?>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-slate-800">
+                                            <?php echo htmlspecialchars($last_setoran['nama_surah']); ?>
+                                        </h4>
+                                        <p class="text-xs text-slate-500">
+                                            Ayat <?php echo htmlspecialchars($last_setoran['ayat_mulai']); ?> - <?php echo htmlspecialchars($last_setoran['ayat_selesai']); ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                        <?php echo htmlspecialchars($last_setoran['kelancaran'] ?? 'Lancar'); ?>
+                                    </span>
+                                    <p class="text-[10px] text-slate-400 mt-1">
+                                        <?php echo date('d M Y', strtotime($last_setoran['tanggal_setor'])); ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- TAMPILAN JIKA BELUM ADA DATA SETORAN -->
+                        <div class="p-6 text-center py-10">
+                            <div class="w-16 h-16 bg-slate-100 rounded-2xl flex justify-center items-center mx-auto mb-3 text-slate-400 shadow-inner">
+                                <i class="fa-solid fa-clock-rotate-left text-2xl"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-700">Belum Ada Setoran</h4>
+                            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                                Santri belum memiliki riwayat setoran hafalan yang dicatat oleh Ustadz.
+                            </p>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            </div>
 
         </div>
     </main>
