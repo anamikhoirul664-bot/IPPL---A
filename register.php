@@ -11,7 +11,7 @@ $error = '';
 $success = '';
 
 // Inisialisasi variabel input
-$nama = $username = $email = $role = $nik_kk = '';
+$nama = $username = $email = $role = $nik_kk = $telepon = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email    = trim($_POST['email'] ?? '');
         $role     = trim($_POST['role'] ?? '');
         $nik_kk   = trim($_POST['nik_kk'] ?? '');
+        $telepon  = trim($_POST['telepon'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm  = $_POST['confirm_password'] ?? '';
 
@@ -66,6 +67,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Peran (role) yang dipilih tidak sah.";
         }
 
+        // Validasi nomor WhatsApp
+        elseif ($role === 'wali' && empty($telepon)) {
+            $error = "Nomor HP/WhatsApp wajib diisi untuk Wali Santri.";
+        } elseif (
+            !empty($telepon) &&
+            !preg_match('/^[0-9+()\-\s]{8,20}$/', $telepon)
+        ) {
+            $error = "Format nomor HP/WhatsApp tidak valid.";
+        }
+
+
         // 6. VALIDASI NIK KK
         elseif (!preg_match('/^[0-9]{16}$/', $nik_kk)) {
             $error = "NIK KK harus terdiri dari 16 angka.";
@@ -84,9 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 8. VALIDASI KONFIRMASI PASSWORD
         elseif ($password !== $confirm) {
             $error = "Konfirmasi password tidak cocok.";
-        }
-
-        else {
+        } else {
 
             // Cek ketersediaan username / email
             $check_stmt = mysqli_prepare(
@@ -108,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $error = "Username atau Email sudah terdaftar.";
                 mysqli_stmt_close($check_stmt);
-
             } else {
 
                 mysqli_stmt_close($check_stmt);
@@ -128,18 +137,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insert_stmt = mysqli_prepare(
                         $koneksi,
                         "INSERT INTO users
-                        (nama, username, email, password, role)
-                        VALUES (?, ?, ?, ?, ?)"
+                        (nama, username, email, password, role, telepon)
+                        VALUES (?, ?, ?, ?, ?, ?)"
                     );
 
                     mysqli_stmt_bind_param(
                         $insert_stmt,
-                        "sssss",
+                        "ssssss",
                         $nama,
                         $username,
                         $email,
                         $hashed_password,
-                        $role
+                        $role,
+                        $telepon
                     );
 
                     if (!mysqli_stmt_execute($insert_stmt)) {
@@ -175,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $nis,
                             $nik_kk
                         );
-
                     } elseif ($role === 'wali') {
 
                         $role_stmt = mysqli_prepare(
@@ -246,8 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "Pendaftaran berhasil! Silakan login dengan akun Anda.";
 
                     // Reset input
-                    $nama = $username = $email = $role = $nik_kk = '';
-
+                    $nama = $username = $email = $role = $nik_kk = $telepon = '';
                 } catch (Exception $e) {
 
                     // Rollback jika gagal
@@ -275,13 +283,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    >
+        rel="stylesheet">
 
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body {
@@ -361,8 +367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <a
                             href="login.php"
-                            class="block font-bold underline mt-1 text-emerald-800 hover:text-emerald-900"
-                        >
+                            class="block font-bold underline mt-1 text-emerald-800 hover:text-emerald-900">
                             Klik untuk Login
                         </a>
 
@@ -377,14 +382,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 method="POST"
                 id="regForm"
                 class="space-y-4"
-                autocomplete="off"
-            >
+                autocomplete="off">
 
                 <input
                     type="hidden"
                     name="csrf_token"
-                    value="<?php echo $_SESSION['csrf_token']; ?>"
-                >
+                    value="<?php echo $_SESSION['csrf_token']; ?>">
 
                 <!-- Nama -->
                 <div>
@@ -399,8 +402,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         value="<?php echo htmlspecialchars($nama); ?>"
                         required
                         placeholder="Ahmad Hanif"
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                    >
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
 
                 </div>
 
@@ -419,8 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             value="<?php echo htmlspecialchars($username); ?>"
                             required
                             placeholder="ahmad_hanif"
-                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                        >
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
 
                     </div>
 
@@ -436,8 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             value="<?php echo htmlspecialchars($email); ?>"
                             required
                             placeholder="hanif@example.com"
-                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                        >
+                            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
 
                     </div>
 
@@ -454,28 +454,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name="role"
                         id="roleSelect"
                         required
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                    >
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
 
                         <option
                             value=""
                             disabled
-                            <?php echo empty($role) ? 'selected' : ''; ?>
-                        >
+                            <?php echo empty($role) ? 'selected' : ''; ?>>
                             Pilih Peran Pendaftaran
                         </option>
 
                         <option
                             value="santri"
-                            <?php echo $role === 'santri' ? 'selected' : ''; ?>
-                        >
+                            <?php echo $role === 'santri' ? 'selected' : ''; ?>>
                             Santri
                         </option>
 
                         <option
                             value="wali"
-                            <?php echo $role === 'wali' ? 'selected' : ''; ?>
-                        >
+                            <?php echo $role === 'wali' ? 'selected' : ''; ?>>
                             Wali Santri
                         </option>
 
@@ -499,14 +495,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         inputmode="numeric"
                         pattern="[0-9]{16}"
                         placeholder="Masukkan 16 digit NIK KK"
-                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
-                    >
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
 
                     <p class="text-[11px] text-slate-400 mt-1">
                         Gunakan 16 digit NIK yang terdaftar pada Kartu Keluarga.
                     </p>
 
                 </div>
+
+                <!-- Nomor HP / WhatsApp -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Nomor HP / WhatsApp
+                        <span id="telepon-required" class="text-rose-500">*</span>
+                    </label>
+
+                    <input
+                        type="tel"
+                        name="telepon"
+                        id="telepon"
+                        value="<?php echo htmlspecialchars($telepon); ?>"
+                        placeholder="Contoh: 081234567890"
+                        maxlength="20"
+                        autocomplete="tel"
+                        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
+
+                    <p id="telepon-hint" class="text-[11px] text-slate-400 mt-1">
+                        Nomor WhatsApp orang tua/wali yang aktif.
+                    </p>
+                </div>
+
 
                 <!-- Password -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -526,14 +544,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 required
                                 placeholder="••••••••"
                                 oninput="checkPasswordStrength()"
-                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all pr-10"
-                            >
+                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all pr-10">
 
                             <button
                                 type="button"
                                 onclick="togglePass('password', 'eye1')"
-                                class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none"
-                            >
+                                class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none">
                                 <i id="eye1" class="fa-solid fa-eye text-xs"></i>
                             </button>
 
@@ -556,14 +572,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 required
                                 placeholder="••••••••"
                                 oninput="checkMatch()"
-                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all pr-10"
-                            >
+                                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all pr-10">
 
                             <button
                                 type="button"
                                 onclick="togglePass('confirm_password', 'eye2')"
-                                class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none"
-                            >
+                                class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none">
                                 <i id="eye2" class="fa-solid fa-eye text-xs"></i>
                             </button>
 
@@ -610,8 +624,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <button
                     type="submit"
-                    class="w-full py-3.5 mt-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl shadow-lg shadow-emerald-600/25 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
-                >
+                    class="w-full py-3.5 mt-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl shadow-lg shadow-emerald-600/25 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
                     <i class="fa-solid fa-user-plus mr-2"></i>
                     Daftar Sekarang
                 </button>
@@ -624,8 +637,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <a
                     href="login.php"
-                    class="text-emerald-600 font-bold hover:underline"
-                >
+                    class="text-emerald-600 font-bold hover:underline">
                     Masuk Ke Aplikasi
                 </a>
 
@@ -637,8 +649,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <a
                 href="index.php"
-                class="hover:text-emerald-600 transition-colors"
-            >
+                class="hover:text-emerald-600 transition-colors">
                 <i class="fa-solid fa-arrow-left mr-1"></i>
                 Kembali ke Beranda
             </a>
@@ -648,7 +659,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-
         // Toggle Show/Hide Password
         function togglePass(inputId, eyeId) {
 
@@ -750,7 +760,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             checkPasswordStrength();
         });
 
+
+        function aturNomorTelepon() {
+            const role = document.getElementById('roleSelect').value;
+            const telepon = document.getElementById('telepon');
+            const tandaWajib = document.getElementById('telepon-required');
+            const petunjuk = document.getElementById('telepon-hint');
+
+            const wajib = role === 'wali';
+
+            telepon.required = wajib;
+            tandaWajib.style.display = wajib ? 'inline' : 'none';
+
+            petunjuk.textContent = wajib ?
+                'Nomor WhatsApp orang tua/wali wajib diisi.' :
+                'Opsional untuk Santri.';
+
+            telepon.placeholder = wajib ?
+                'Masukkan nomor WhatsApp orang tua/wali' :
+                'Opsional, jika ada';
+        }
+
+        document.getElementById('roleSelect')
+            .addEventListener('change', aturNomorTelepon);
+
+        document.addEventListener('DOMContentLoaded', aturNomorTelepon);
     </script>
 
 </body>
+
 </html>

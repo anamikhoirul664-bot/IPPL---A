@@ -59,7 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_stmt_execute($stmt1);
 
             // Update tabel wali_santri
-            $stmt2 = mysqli_prepare($koneksi, "UPDATE wali_santri SET pekerjaan=?, alamat=? WHERE id=?");
+            $stmt2 = mysqli_prepare(
+                $koneksi,
+                "UPDATE wali_santri SET pekerjaan=?, alamat=? WHERE id=?"
+            );
+
             mysqli_stmt_bind_param($stmt2, "ssi", $pekerjaan, $alamat, $wali_id);
             mysqli_stmt_execute($stmt2);
 
@@ -71,52 +75,64 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Data Wali Santri - E-Hafalan</title>
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Alpine.js untuk Drawer Sidebar & Interaksi UI -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <!-- Google Fonts & FontAwesome -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style> 
-        body { font-family: 'Poppins', sans-serif; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .animate-fade-in {
             animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0" 
-      x-data="{ mobileMenuOpen: false, showPassword: false }">
+
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0"
+    x-data="{ mobileMenuOpen: false, showPassword: false }">
 
     <!-- BACKDROP MOBILE MENU -->
-    <div x-show="mobileMenuOpen" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         @click="mobileMenuOpen = false" 
-         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden" 
-         x-cloak></div>
+    <div x-show="mobileMenuOpen"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="mobileMenuOpen = false"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
+        x-cloak></div>
 
     <!-- SIDEBAR (Desktop & Mobile Drawer) -->
     <aside :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
-           class="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
-        
+        class="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+
         <!-- Logo Brand -->
         <div class="p-5 border-b border-slate-800 flex items-center justify-between">
             <div class="flex items-center space-x-3">
@@ -239,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <!-- MAIN CONTENT AREA -->
     <main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-        
+
         <!-- HEADER TOP -->
         <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20">
             <div class="flex items-center space-x-3">
@@ -251,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <p class="text-xs text-slate-500 hidden sm:block">Perbarui informasi akun dan data diri wali santri</p>
                 </div>
             </div>
-            
+
             <a href="wali.php" class="px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center space-x-1 sm:space-x-2">
                 <i class="fa-solid fa-arrow-left"></i>
                 <span class="hidden sm:inline">Kembali</span>
@@ -273,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <div class="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
                 <form action="edit_wali.php?id=<?php echo $wali_id; ?>" method="POST" class="space-y-6">
-                    
+
                     <!-- SECTION 1: INFORMASI AKUN LOGIN -->
                     <div>
                         <div class="flex items-center space-x-2 pb-3 mb-4 border-b border-slate-100">
@@ -286,27 +302,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Wali <span class="text-rose-500">*</span></label>
-                                <input type="text" name="nama" value="<?php echo htmlspecialchars($data['nama']); ?>" required 
-                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                <input type="text" name="nama" value="<?php echo htmlspecialchars($data['nama']); ?>" required
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                             </div>
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
-                                <input type="text" name="username" value="<?php echo htmlspecialchars($data['username']); ?>" required 
-                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                <input type="text" name="username" value="<?php echo htmlspecialchars($data['username']); ?>" required
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                             </div>
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
-                                <input type="email" name="email" value="<?php echo htmlspecialchars($data['email']); ?>" required 
-                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                <input type="email" name="email" value="<?php echo htmlspecialchars($data['email']); ?>" required
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                             </div>
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Password Baru <span class="text-slate-400 font-normal">(Opsional)</span></label>
                                 <div class="relative">
-                                    <input :type="showPassword ? 'text' : 'password'" name="password" placeholder="Biarkan kosong jika tidak diganti" 
-                                           class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                    <input :type="showPassword ? 'text' : 'password'" name="password" placeholder="Biarkan kosong jika tidak diganti"
+                                        class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                                     <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                         <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-xs"></i>
                                     </button>
@@ -327,14 +343,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Telepon / WhatsApp</label>
-                                <input type="text" name="telepon" value="<?php echo htmlspecialchars($data['telepon']); ?>" 
-                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                <input type="text" name="telepon" value="<?php echo htmlspecialchars($data['telepon']); ?>"
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                             </div>
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Pekerjaan</label>
-                                <input type="text" name="pekerjaan" value="<?php echo htmlspecialchars($data['pekerjaan']); ?>" 
-                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                                <input type="text" name="pekerjaan"
+                                    value="<?php echo htmlspecialchars($data['pekerjaan'] ?? ''); ?>"
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                             </div>
 
                             <div>
@@ -345,11 +362,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 </select>
                             </div>
 
+
                             <div class="sm:col-span-3">
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Alamat Lengkap</label>
-                                <textarea name="alamat" rows="3" placeholder="Masukkan alamat lengkap domisili wali..." 
-                                          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"><?php echo htmlspecialchars($data['alamat']); ?></textarea>
+                                <textarea name="alamat" rows="3" placeholder="Masukkan alamat lengkap domisili wali..."
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"><?php echo htmlspecialchars($data['alamat'] ?? ''); ?></textarea>
                             </div>
+
                         </div>
                     </div>
 
@@ -371,4 +390,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </main>
 
 </body>
+
 </html>

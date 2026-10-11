@@ -204,3 +204,7 @@ ALTER TABLE `halaqah`
 ADD COLUMN `hari` VARCHAR(20) NULL AFTER `ruangan`,
 ADD COLUMN `jam_mulai` TIME NULL AFTER `hari`,
 ADD COLUMN `jam_selesai` TIME NULL AFTER `jam_mulai`;
+
+
+ALTER TABLE wali_santri
+ADD COLUMN pekerjaan VARCHAR(100) DEFAULT NULL;
